@@ -1,5 +1,7 @@
 # Massing Studio
 
+Live: https://xelionlabs26.github.io/maasing-to-render/
+
 Turn an architect's massing into a photoreal render, lifestyle shots and Instagram reels — without changing its form. Runs entirely in the browser on fal.ai (Nano Banana Pro, Nano Banana 2, Kling 2.5 Turbo Pro).
 
 ## Put it online with GitHub Pages (about 3 minutes)
