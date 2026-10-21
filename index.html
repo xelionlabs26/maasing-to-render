@@ -546,23 +546,36 @@ ${NEGATIVES}
 Output a single photograph.`;
 }
 const sceneSetting = () => `${lookBlock()}${S.brief && !S.enhanced ? " Notes: " + S.brief : ""}`;
-function peopleLine(r) {
-  const p = (r.people || []).filter((x) => !/^no people$/i.test(String(x).trim()));
-  return p.length ? `People: ${p.join("; ")}. Size each one against the reference heights above before placing them, and put them only where they physically fit (on the ground plane, on a seat-height surface, under a door-height porch). Candid and natural, nobody looks at the camera, clothing that belongs to the region.` : "No people in the frame.";
+const peopleOf = (r) => (r.people || []).map(String).filter((x) => x.trim() && !/^no people$/i.test(x.trim()));
+/** Image models follow body comparisons far better than metres: say what a height is on a 1.75 m adult. */
+function bodyRef(m) {
+  if (m <= 0.18) return "about ankle height on an adult";
+  if (m <= 0.4) return "about mid-shin on an adult, well below the knee";
+  if (m <= 0.6) return "about knee height on an adult";
+  if (m <= 0.85) return "about mid-thigh on an adult";
+  if (m <= 1.15) return "about waist height on an adult";
+  if (m <= 1.4) return "about chest height on an adult";
+  if (m <= 1.62) return "about shoulder height on an adult";
+  if (m <= 2.0) return "about an adult's full height";
+  return `${+(m / 1.75).toFixed(1)} adults tall: a standing adult reaches about ${Math.round((1.75 / m) * 100)}% of it`;
 }
+const anchorLines = (anchors) => anchors.map((a) => `- ${a.feature}: ${a.heightM} m, ${bodyRef(a.heightM)}.`).join("\n");
+const SCALE_RULES = "Real sizes: adults 1.6–1.85 m, children 0.9–1.4 m by age, a cat about 25 cm tall (mid-shin on an adult), a medium dog about 55 cm at the shoulder (an adult's knee to mid-thigh), a seat about 45 cm high, shrubs 0.5–1.5 m, palms and trees at their species' real height. Everything stands on the ground it touches and is sized against the building right beside it, never against the frame. Anyone further from the camera shrinks exactly as much as the building behind them. No giants, no miniatures, nobody taller than a doorway.";
 /** The building's real size, read once per approved render, so life around it can be drawn to scale. */
-const SCALE_RULES = "Every person, animal, plant and object stands on the same ground plane as the building's base and is sized against the building, never against the frame: adults 1.6–1.85 m, children 1.0–1.4 m by age, a cat about 25 cm tall, a medium dog about 55 cm at the shoulder, a seat about 45 cm high, shrubs 0.5–1.5 m, palms and trees at their species' real height. Perspective is shared: with an eye-level camera the horizon passes through the heads of standing adults at every distance, and anyone further from the camera shrinks exactly as much as the building behind them. No giants, no miniatures, nobody taller than a doorway.";
 function scaleBlock(sc) {
   if (!sc) return `Scale (obey strictly): ${SCALE_RULES}`;
-  const tall = sc.overallHeightM ? ` and stands about ${sc.overallHeightM} m tall` : "";
-  return `Scale (measured from image 1, obey strictly): the building has ${sc.storeys} ${sc.storeys === 1 ? "storey" : "storeys"}${tall}. Reference heights: ${sc.anchors.map((a) => `${a.feature} ${a.heightM} m`).join("; ")}. People stand and walk on ${sc.groundPlane}. Seat-height surfaces: ${sc.seating}. ${sc.personRule} ${sc.plantRule}
+  const tall = sc.overallHeightM ? ` and stands about ${sc.overallHeightM} m tall (${bodyRef(sc.overallHeightM)})` : "";
+  return `Scale (measured from image 1, obey strictly): the building has ${sc.storeys} ${sc.storeys === 1 ? "storey" : "storeys"}${tall}. Reference heights:
+${anchorLines(sc.anchors)}
+${sc.plantRule}
 ${SCALE_RULES}`;
 }
 const scaleText = (sc) => sc
-  ? `Building scale: ${sc.storeys} ${sc.storeys === 1 ? "storey" : "storeys"}${sc.overallHeightM ? `, about ${sc.overallHeightM} m tall` : ""}; reference heights: ${sc.anchors.map((a) => `${a.feature} ${a.heightM} m`).join("; ")}. ${sc.personRule}`
+  ? `Building scale: ${sc.storeys} ${sc.storeys === 1 ? "storey" : "storeys"}${sc.overallHeightM ? `, about ${sc.overallHeightM} m tall` : ""}. Reference heights: ${sc.anchors.map((a) => `${a.feature} ${a.heightM} m (${bodyRef(a.heightM)})`).join("; ")}. ${sc.personRule}`
   : "Building scale: judge it from the doors (2.1–2.4 m tall) and storeys (about 3–3.5 m); a standing adult is 1.6–1.85 m.";
+/** Pass 1 of a lifestyle shot: the building in its new view, weather and planting, with nobody in it yet. */
 function scenePrompt(r, sc) {
-  const m = S.analysis;
+  const m = S.analysis; const p = peopleOf(r);
   return `Photograph the exact building shown in image 1 as a high-end architectural lifestyle photograph.
 
 Identity lock: image 1 is the approved building. Keep every volume, material, colour, opening and proportion. Image 2 is the original massing model and the only source of the building's geometry: same number of volumes, stacking, rotations, cantilevers and roof shapes, no added floors or volumes. The viewpoint may change; the building may not. Massing summary: ${m.overallDescription}. Outline features to preserve: ${m.silhouetteNotes}.
@@ -571,10 +584,37 @@ ${scaleBlock(sc)}
 
 Viewpoint: ${r.viewpoint}.
 Time of day: ${r.timeOfDay}. Weather: ${r.weather}. Mood: ${r.mood}.
-${peopleLine(r)}
+No people and no animals in this photograph.${p.length ? ` They are added later, so leave clear, natural, walkable ground where they will go: ${p.join("; ")}.` : ""}
 Camera: ${r.cameraFeel}.
 Setting: ${sceneSetting()}
 ${notes(r.notes || "")}
+
+${NEGATIVES}
+Output a single photograph.`;
+}
+/** The horizon crosses every standing figure at the camera's height above their feet, at any distance. */
+function horizonRule(c) {
+  if (!c) return "With an eye-level camera the horizon line crosses the eyes of every standing adult, near or far.";
+  const at = c <= 0.6 ? "around their knees" : c <= 1.2 ? "around their waist" : c <= 1.45 ? "around their chest" : c <= 1.85 ? "at their eyes" : "above their heads";
+  return `The camera is about ${c} m above the ground, so the horizon line crosses every standing adult ${at}, near or far; a person further away is smaller but the horizon still crosses them at the same body height.`;
+}
+/** Pass 2 of a lifestyle shot: only people and animals, added into the fixed pass-1 photograph where its measurements say they fit. */
+function peoplePrompt(r, sc, place) {
+  const anchors = place?.anchors?.length ? place.anchors : sc?.anchors || [];
+  const who = place?.placements?.length
+    ? place.placements.map((p) => `- ${p.who}: ${p.where}. ${p.heightM} m tall as posed (${bodyRef(p.heightM)}). ${p.compare}`).join("\n")
+    : peopleOf(r).map((x) => `- ${x}: on the walkable ground near the building, sized against the nearest door, step or ledge.`).join("\n");
+  return `Image 1 is a finished architectural photograph. Add only the people and animals listed below. Change nothing else: the same building, camera, framing, light, weather, ground and plants, pixel for pixel wherever nobody is added.
+
+Measurements of image 1 (obey strictly):
+${anchorLines(anchors)}
+${horizonRule(place?.cameraHeightM)}
+
+Add:
+${who}
+
+Before drawing each one, compare them with the feature named beside them and with the horizon line; their size must agree with both. Feet and paws rest on the ground they stand on, with matching contact shadows, the same light direction and, on wet ground, a matching reflection. ${SCALE_RULES}
+Candid and natural, nobody looks at the camera, clothing that belongs to the region. Mood: ${r.mood}.
 
 ${NEGATIVES}
 Output a single photograph.`;
@@ -622,8 +662,8 @@ The massing has ${m.volumeCount} volumes: ${m.overallDescription} Distinctive ou
 Check strictly: the number of volumes; each volume's position, stacking, rotation and cantilever; relative heights and widths; roof shapes; ground relationship; camera angle. Added windows, materials, landscape and sky are allowed and must not lower the score. A different building that merely looks similar must score below 70.
 Reply with only a JSON object:
 {"score": 0-100, "verdict": "pass" (85+) | "warn" (70-84) | "fail" (under 70), "issues": ["specific differences, most serious first"], "correctivePrompt": "1–3 imperative sentences that would fix the worst issue, or empty"}`,
-  scale: (m) => `The image is a photoreal render of a finished building (likely ${m.buildingTypeGuess}). ${m.overallDescription}
-Work out its real-world size, so that people, animals and plants can later be added at true scale. Measure from what is in the picture: doors (usually 2.1–2.4 m tall), floor-to-floor heights (homes about 3–3.3 m, offices 3.5–4 m), railings (about 1.0–1.1 m), steps (15–18 cm risers), window sills, paving units, cars and existing plants. Where the cues disagree, trust doors and storeys.
+  scale: (m, realHeight) => `The image is a photoreal render of a finished building (likely ${m.buildingTypeGuess}). ${m.overallDescription}
+Work out its real-world size, so that people, animals and plants can later be added at true scale. Measure from what is in the picture: doors (usually 2.1–2.4 m tall), floor-to-floor heights (homes about 3–3.3 m, offices 3.5–4 m), a car porch's clear height (about 2.7–3.2 m), double-height glazing (about 6–7 m), railings (about 1.0–1.1 m), steps (15–18 cm risers), raised plinths (0.45–1.2 m), window sills, paving setts (about 10–15 cm), kerbs (about 15 cm), cars and existing plants. Where the cues disagree, trust doors, storeys and paving. Size the building from its architecture, not from plants or people already in the picture, which may be drawn at the wrong size.${realHeight ? `\nThe architect gives the real height of the tallest part: ${realHeight} m. Treat it as true and derive every other height from it, in proportion to the picture.` : ""}
 Reply with only a JSON object:
 {"storeys": integer,
  "overallHeightM": number,
@@ -635,10 +675,17 @@ Reply with only a JSON object:
   sceneCheck: (m, scaleText) => `Image 1 is the approved render of a building (the hero). Image 2 is the architect's massing model of the same building. Image 3 is a new lifestyle photograph that must show this same building, possibly from another viewpoint, time of day or weather.
 The building has ${m.volumeCount} volumes: ${m.overallDescription} Distinctive outline features: ${m.silhouetteNotes}
 Check the building: same volumes and proportions (allowing for the new viewpoint); same materials, colours and openings as image 1; no extra floors or added volumes. People, plants, weather and light may differ and must not lower this score.
-Then check scale separately, in image 3 only. ${scaleText} Compare every person, child, animal and plant with the doors, storeys and ledges right next to them, and with the horizon. An adult taller than a door or as tall as a storey, a child the size of an adult, a pet the size of a child, a seated person whose seat is not at seat height, people at different depths who are not shrunk by the same perspective, or anything that makes the building look like a model must bring scaleScore under 60. With no people, animals or plants in image 3, scaleScore is 100.
+Then check scale separately, in image 3 only. ${scaleText} For every person, child and animal: find the building feature right beside them, use its height to estimate theirs in metres, and check where the horizon line crosses them (it must cross every standing adult at the same body height). Anyone more than 15% off their real size is out of scale; so is a group whose members disagree with each other. An adult taller than a door or as tall as a storey, a child the size of an adult, a pet the size of a child, a seated person whose seat is not at seat height, people at different depths who are not shrunk by the same perspective, or anything that makes the building look like a model must bring scaleScore under 60. With no people, animals or plants in image 3, scaleScore is 100.
 Reply with only a JSON object:
 {"score": 0-100, "verdict": "pass" | "warn" | "fail", "issues": ["specific differences"], "correctivePrompt": "1–3 imperative sentences fixing the worst issue, or empty",
  "scaleScore": 0-100, "scaleIssues": ["each element that is out of scale, how far off, and what it should measure against"], "scaleCorrective": "1–3 imperative sentences that resize the worst offenders against named parts of the building, or empty"}`,
+  placement: (r, scaleText, people) => `Image 1 is a finished architectural photograph with nobody in it yet. These will be added to it: ${people.join("; ")}.
+${scaleText}
+Study image 1 first: the ground plane, which surfaces are walkable or sittable, the camera's height above the ground and where the horizon line is. Measure the features visible in THIS view, then place each person or animal where they physically fit, are clearly visible and do not hide the architecture, and give their true height as posed (standing, seated, crouching, carried).
+Reply with only a JSON object:
+{"cameraHeightM": number,
+ "anchors": [{"feature": "a feature visible in this image, named so it can be found", "heightM": number}] (3–5, at least one right next to each placement),
+ "placements": [{"who": "as listed", "where": "the exact spot in this image, e.g. 'on the paving about 1 m in front of the porch's right column, mid-ground'", "heightM": number, "compare": "one sentence comparing them with the nearest anchor, e.g. 'his head is about two thirds of the way up the porch opening'"}]}`,
   storyboard: (setting, scaleText) => `You plan lifestyle photographs of the finished building in the image, for an architect's social media: real people living around the building, natural light, weather, plants — like high-end architectural lifestyle photography.
 Setting and look: ${setting}
 ${scaleText}
@@ -683,6 +730,7 @@ const S = {
   versions: [], heroId: null, outline: false,
   storyboard: null, useSuggested: true, picked: new Set([0, 1, 2, 3, 4, 5]), sStatus: "idle", sError: "",
   shots: [],
+  realHeight: null,
   pick: null, duration: "5", format: "9:16", motion: "auto", videoType: "lifestyle", cta: { title: "", action: "" }, more3: false,
   reels: [],
   uploading: null,
@@ -733,10 +781,22 @@ function normScale(x) {
   if (!anchors.length) return null;
   return { storeys: Math.max(1, parseInt(x.storeys, 10) || 1), overallHeightM: num(x.overallHeightM), anchors, groundPlane: String(x.groundPlane || "the paving at the building's base"), seating: String(x.seating || "none"), personRule: String(x.personRule || ""), plantRule: String(x.plantRule || "") };
 }
-/** Read the approved render's real size once; every shot of it shares the answer. A failed read is retried next time. */
+/** Read the approved render's real size once (again if the owner's height changes); every shot of it shares the answer. A failed read is retried next time. */
 function heroScale(h) {
-  h.scaleP ??= askJSON(ASK.scale(S.analysis), [h.blob]).then(normScale).then((sc) => sc || Promise.reject()).catch(() => { h.scaleP = null; return null; });
+  const key = S.realHeight || "";
+  if (h.scaleKey !== key) { h.scaleKey = key; h.scaleP = null; }
+  h.scaleP ??= askJSON(ASK.scale(S.analysis, S.realHeight), [h.blob]).then(normScale).then((sc) => sc || Promise.reject())
+    .then((sc) => { if (h.scaleKey === key) { h.measured = sc; renderR2(); } return sc; })
+    .catch(() => { if (h.scaleKey === key) h.scaleP = null; return null; });
   return h.scaleP;
+}
+function normPlacement(x) {
+  const num = (v) => { const f = Number(v); return Number.isFinite(f) && f > 0 && f < 1000 ? +f.toFixed(2) : null; };
+  const anchors = normScale({ anchors: x?.anchors })?.anchors || [];
+  const placements = (Array.isArray(x?.placements) ? x.placements : []).map((p) => ({ who: String(p?.who || "").trim(), where: String(p?.where || "").trim(), heightM: num(p?.heightM), compare: String(p?.compare || "").trim() })).filter((p) => p.who && p.where && p.heightM && p.heightM < 3);
+  if (!placements.length) return null;
+  const c = num(x?.cameraHeightM);
+  return { cameraHeightM: c && c < 60 ? c : null, anchors, placements };
 }
 function shotSummary(r) {
   const p = (r.people || []).filter((x) => !/^no people$/i.test(String(x).trim()));
@@ -844,7 +904,10 @@ function renderR2() {
   const swap = S.storyboard ? (S.useSuggested ? `<button class="linkbtn" style="color:var(--muted)" data-act="use-presets">Use the six reference shots</button>` : `<button class="linkbtn" style="color:var(--muted)" data-act="use-suggested">Use the suggested shots</button>`) : "";
   $("#r2l").innerHTML = `<div class="panel lockable"><div class="box"><h3>Shot list</h3><p class="help">Tick the shots you want. Each one keeps your building exactly as rendered above.</p>
       <ul class="shotlist" style="margin-top:10px">${list.map((r, i) => `<li><label><input type="checkbox" data-shot="${i}" ${S.picked.has(i) ? "checked" : ""} ${h ? "" : "disabled"}><span><b>${esc(r.title)}</b><small>${esc(shotSummary(r))}</small></span></label></li>`).join("")}</ul>
-      <div class="btns" style="font-size:13.5px"><button class="linkbtn" data-act="suggest" ${!h || S.sStatus === "busy" ? "disabled" : ""}>Suggest shots for this place</button>${swap}</div>${status}</div>
+      <div class="btns" style="font-size:13.5px"><button class="linkbtn" data-act="suggest" ${!h || S.sStatus === "busy" ? "disabled" : ""}>Suggest shots for this place</button>${swap}</div>${status}
+      <div style="margin-top:16px"><label class="lbl" for="real-height">Building height (optional)</label>
+        <div style="display:flex;align-items:center;gap:8px;max-width:220px"><input type="text" inputmode="decimal" id="real-height" placeholder="${h?.measured?.overallHeightM ? esc(h.measured.overallHeightM) : "e.g. 9.5"}" value="${esc(S.realHeight || "")}" ${h ? "" : "disabled"}><span class="small">m</span></div>
+        <p class="small" style="margin:6px 0 0">${h?.measured ? `Measured from the render: ${h.measured.storeys} ${h.measured.storeys === 1 ? "storey" : "storeys"}${h.measured.overallHeightM ? `, about ${esc(h.measured.overallHeightM)} m` : ""}${S.realHeight ? " (using your height)" : ""}. ` : ""}People and plants are sized against this. Enter the real height of the tallest part if you know it.</p></div></div>
     <div class="go"><button class="btn lg" data-act="create-shots" ${!h || !chosen.length || busy ? "disabled" : ""}>${busy ? "Creating…" : `Create ${chosen.length} ${chosen.length === 1 ? "shot" : "shots"}`}</button></div></div>`;
   const ratio = S.massing ? `${S.massing.w} / ${S.massing.h}` : "4 / 3";
   $("#r2r").innerHTML = `<h3 class="outh">Output images</h3><div class="grid3">${S.shots.length ? S.shots.map(shotSlotHTML).join("") : Array.from({ length: 6 }, () => `<div class="slot empty" style="aspect-ratio:${ratio}"></div>`).join("")}</div>`;
@@ -1082,12 +1145,30 @@ async function makeShot(s) {
     const massing = await preparedMassing();
     s.stage = "Measuring the building’s real size…"; renderR2();
     const sc = await heroScale(h);
-    const best = await generateChecked(
+    const check = (scaleTxt) => async (pic) => mergeSceneCheck(await askJSON(ASK.sceneCheck(S.analysis, scaleTxt), [h.blob, S.massing.blob, pic.blob]));
+    const stages = (empty) => (stage) => {
+      s.stage = stage.replace("Rendering on fal.ai…", empty ? "Creating the scene…" : "Adding the people at real scale…").replace("Checking the outline against your massing…", empty ? "Checking the building…" : "Checking everyone’s scale…").replace("Fixing the outline and trying again…", "Fixing what the check found…");
+      s.status = stage.startsWith("Check") ? "checking" : "rendering"; renderR2();
+    };
+    // Pass 1: the building in its new view, with nobody in it.
+    const scene = await generateChecked(
       (corrective) => genImage(ENDPOINTS.scene, scenePrompt(s.recipe, sc) + (corrective ? `\nCorrection from the consistency check: ${corrective}` : ""), [heroIn, massing], "Nano Banana 2"),
-      async (pic) => mergeSceneCheck(await askJSON(ASK.sceneCheck(S.analysis, scaleText(sc)), [h.blob, S.massing.blob, pic.blob])),
-      (stage) => { s.stage = stage.replace("Rendering on fal.ai…", "Creating…").replace("Checking the outline against your massing…", "Checking the building and its scale…").replace("Fixing the outline and trying again…", "Fixing what the check found…"); s.status = stage.startsWith("Check") ? "checking" : "rendering"; renderR2(); },
+      check(scaleText(sc)), stages(true),
     );
-    Object.assign(s, { pic: best.pic, check: best.check, scale: sc, status: "done", stage: "" });
+    let best = scene, place = null;
+    const people = peopleOf(s.recipe);
+    if (people.length) {
+      // Pass 2: measure this exact view, then add the people into it where and how big they belong.
+      s.pic = scene.pic; s.stage = "Measuring this view for the people…"; renderR2();
+      try { place = normPlacement(await askJSON(ASK.placement(s.recipe, scaleText(sc), people), [scene.pic.blob])); } catch {}
+      const sceneIn = await framed(scene.pic);
+      const viewScale = place?.anchors.length ? { ...(sc || { storeys: 1, overallHeightM: null, personRule: "" }), anchors: place.anchors } : sc;
+      best = await generateChecked(
+        (corrective) => genImage(ENDPOINTS.hero, peoplePrompt(s.recipe, sc, place) + (corrective ? `\nCorrection from the scale check: ${corrective}` : ""), [sceneIn], "Nano Banana Pro"),
+        check(scaleText(viewScale)), stages(false),
+      );
+    }
+    Object.assign(s, { pic: best.pic, check: best.check, scale: sc, place, status: "done", stage: "" });
   } catch (e) { Object.assign(s, { status: "error", error: e.message, stage: "" }); }
   renderR2(); renderR3();
 }
@@ -1138,7 +1219,7 @@ async function handleFile(kind, file) {
     S.uploading = null;
     if (kind === "massing") {
       const had = S.versions.length || S.shots.length;
-      Object.assign(S, { massing: { ...im, key: uid() }, plan: planFrame(im.w, im.h, IMG_RATIOS), prepared: null, analysis: null, editing: false, versions: [], heroId: null, shots: [], reels: [], pick: null, outline: false, r1: { busy: false, stage: "", error: "" } });
+      Object.assign(S, { massing: { ...im, key: uid() }, plan: planFrame(im.w, im.h, IMG_RATIOS), prepared: null, analysis: null, editing: false, versions: [], heroId: null, shots: [], reels: [], realHeight: null, pick: null, outline: false, r1: { busy: false, stage: "", error: "" } });
       if (had) toast("New massing: pictures made for the previous one were cleared.");
       if (!falKey()) { renderAll(); openSettings(); return; }
       readMassing();
@@ -1247,6 +1328,7 @@ document.addEventListener("input", (e) => {
   const t = e.target;
   if (t.id === "brief") { S.brief = t.value; clearTimeout(briefTimer); briefTimer = setTimeout(renderGoBox, 300); }
   else if (t.id === "change") S.changeText = t.value;
+  else if (t.id === "real-height") { const v = parseFloat(t.value.replace(",", ".")); S.realHeight = v >= 2 && v <= 500 ? v : null; }
   else if (t.id === "cta-title") S.cta.title = t.value;
   else if (t.id === "cta-action") S.cta.action = t.value;
 });
