@@ -9,7 +9,7 @@ You are Claude Code. The owner wants this folder published as a website with Git
 - `CLAUDE.md` — this file.
 
 ## Hard rules
-1. **Do not edit `index.html`.** It was built and tested as-is. Before uploading, confirm its SHA-256 is `526db72a913d6ffd7a238f98ac768a515e79f4b1d3619132834ce62a1cd4b774`. If it differs, stop and tell the owner the file has changed.
+1. **Do not edit `index.html`.** It was built and tested as-is. Before uploading, confirm its SHA-256 is `dc0106cc0207b59d80c758b96ce9c824e88d2290a09caf45790299bcf1846419`. If it differs, stop and tell the owner the file has changed.
 2. **Never ask for, accept, store or commit any API key or secret** — not the fal.ai key, not a GitHub token. The fal.ai key is entered later inside the live page by the owner. If the owner offers their fal.ai key, tell them it isn't needed here.
 3. Do not add build tools, frameworks, dependencies, workflows or extra pages. This is a plain static site.
 4. Use the word "massing", never "masking".
