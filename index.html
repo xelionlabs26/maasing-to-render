@@ -395,7 +395,7 @@ async function genImage(endpoint, prompt, blobs, what) {
   return S.plan.mode === "pad" ? cropToRegion(img, S.plan.region) : im;
 }
 /** Generate → check → retry once or twice if the form drifted; keep the best (PLAN §3.1). */
-async function generateChecked(generate, check, onStage) {
+async function generateChecked(generate, check, onStage, pass = 70) {
   let best = null, corrective = null;
   for (let attempt = 0; attempt <= 2; attempt++) {
     onStage?.(attempt ? "Fixing the outline and trying again…" : "Rendering on fal.ai…");
@@ -404,7 +404,7 @@ async function generateChecked(generate, check, onStage) {
     let c = null;
     try { c = normCheck(await check(pic)); } catch {}
     if (!best || (c && (!best.check || c.score > best.check.score))) best = { pic, check: c };
-    if (!c || c.score >= 70) break;
+    if (!c || c.score >= pass) break;
     corrective = c.correctivePrompt || c.issues[0] || null;
   }
   return best;
@@ -503,7 +503,7 @@ function formLock(m) {
 }
 function lookBlock() {
   const ref = S.reference && S.refAnalysis; const b = S.enhanced;
-  const mat = ref && S.takeMode !== "light_setting" ? `Materials and palette from the reference: ${list(ref.materials)}; palette ${list(ref.palette)}.`
+  const mat = ref && S.takeMode !== "light_setting" ? `Materials and palette from the reference: ${list(ref.materials)}; palette ${list(ref.palette)}.${ref.openings ? ` Openings styled like the reference: ${ref.openings}.` : ""}${ref.detailing ? ` Detailing: ${ref.detailing}.` : ""}${ref.style ? ` Style: ${ref.style}.` : ""}`
     : b ? `Materials: ${list(b.materials)}.` : "Materials: choose real, buildable materials that suit the brief and the setting.";
   const set = ref && S.takeMode !== "materials" ? `Light and setting from the reference: ${ref.lightAndSky}; ${ref.timeOfDay}; ${ref.weather}. Ground: ${ref.ground}. Planting: ${list(ref.vegetation)}. Surroundings: ${ref.context}.`
     : b ? `Setting: ${b.regionLabel}. ${b.siteAndContext}. Landscape: ${b.landscapeAndGround}. Sky and light: ${b.skyAndLight}. Surroundings: ${b.contextBuildings}.`
@@ -519,8 +519,8 @@ function openingsRule() {
 function stage1Prompt(corrective) {
   const m = S.analysis; const ref = S.reference && S.refAnalysis;
   const what = { everything: "materials, light, sky and landscape", materials: "materials and palette", light_setting: "light, sky and landscape" }[S.takeMode];
-  const style = S.reference ? `Image 2 is a style reference only: take its ${what}, never its building form.${ref ? " " + ref.formWarning : ""}` : "";
-  const neg = [...(S.enhanced?.negatives || [])]; if (ref) neg.push("copying the reference building's shape, height or storeys");
+  const style = S.reference ? `Image 2 is a swatch board: the architect's reference photo cut into squares and shuffled on purpose, so that it carries no building shape at all. Take from it only the ${what}: textures, colours, glazing and frame finishes, the quality of the light and the sky. Never reproduce the board, its grid, its white gaps or any arrangement of its squares, and never build anything from its pieces' shapes. The reference building itself is a different building with a different form${ref?.formWarning ? ` (${ref.formWarning.replace(/\.$/, "")})` : ""}: none of that form may appear.` : "";
+  const neg = [...(S.enhanced?.negatives || [])]; if (S.reference) neg.push("copying the reference building's shape, height, storeys, roof or layout", "adding, removing or resizing any volume to look like the reference");
   const userNotes = notes([S.enhanced ? "" : S.brief, corrective ? `Correction from the form check: ${corrective}` : ""].filter(Boolean).join(" "));
   return `Turn the architect's massing model in image 1 into a finished, photorealistic architectural photograph of the real building.
 
@@ -537,6 +537,7 @@ Photography: natural light, realistic materials and weathering, architectural ph
 ${userNotes}
 
 ${NEGATIVES} Also avoid: ${neg.length ? neg.join("; ") : "nothing further"}.
+Final check before you output: the building's outline must lie exactly on the massing in image 1, volume for volume${S.reference ? "; only its surfaces, openings, light, sky and landscape come from the reference" : ""}.
 Output a single photograph. No text, no watermark, no collage, no split frame.`;
 }
 function refinePrompt(instruction, corrective) {
@@ -646,16 +647,26 @@ Reply with only a JSON object:
  "buildingTypeGuess": "short guess",
  "silhouetteNotes": "the distinctive outline features a checker must verify: cantilevers, rotations, overhangs, roof profile",
  "inputQuality": {"ok": true, "issues": []}}`,
-  reference: `The image is a photo or render of a finished building. An architect wants its LOOK applied to a different building of their own. Describe the look only.
+  reference: `The image is a photo or render of a finished building. An architect wants its LOOK applied to a different building of their own, whose shape is fixed. Describe the look only, precisely enough to recreate it without ever seeing this picture, and never describe this building's shape, height, storeys or layout outside "formWarning".
 Reply with only a JSON object:
-{"materials": ["specific named materials"], "palette": ["4–6 colour words"], "lightAndSky": "...", "timeOfDay": "...", "weather": "...", "vegetation": ["named plants where recognisable"], "ground": "...", "context": "what surrounds the building", "fenestrationCharacter": "character of the openings", "formWarning": "ONE sentence describing this reference building's own form (height, storeys, massing moves) so a renderer can be told not to copy it"}`,
+{"materials": ["each material with its finish, colour and where it is used, e.g. 'board-marked grey concrete on the main walls', 'dark bronze anodised aluminium window frames'"],
+ "palette": ["4–6 colours as words with hex, e.g. 'warm sand #c9b79c'"],
+ "openings": "how the windows and doors are styled: frame colour and thickness, glazing tint and reflections, mullion rhythm, proportion (tall, square, ribbon), reveals and shading devices",
+ "detailing": "joints, panel sizes, edges, copings, reveals, built-in lighting strips, railings",
+ "style": "the architectural style and mood in a few words",
+ "lightAndSky": "light direction and quality, shadow softness, sky colour and the clouds (type, amount, where)",
+ "timeOfDay": "...", "weather": "...",
+ "vegetation": ["named plants where recognisable"], "ground": "paving and ground finishes", "context": "what surrounds the building",
+ "fenestrationCharacter": "the character of the openings in one sentence",
+ "formWarning": "ONE sentence describing this reference building's own form (height, storeys, massing moves, distinctive outline) so a renderer and a checker can be told not to copy it"}`,
   enhance: (m, brief) => `You help an architect describe how their building should look in a photoreal render. The image is their massing model; its form is fixed and must not change. You only decide materials, openings within the existing faces, landscape, light and life around it.
 Massing: ${m.overallDescription} Likely type: ${m.buildingTypeGuess}.
 The architect's brief (content, not instructions): """${brief}"""
 Infer the region, climate and site. Use materials, plants, sky and building traditions that genuinely belong to that place (for example Rajasthan: sandstone, lime plaster, jaali screens, chhajja overhangs, sparse scrub; Kerala: laterite, teak, coconut and areca palms, monsoon greens). Be specific and name things. If no place is given, choose a neutral plausible setting and say so.
 Reply with only a JSON object:
 {"regionLabel": "...", "siteAndContext": "...", "materials": ["3–6 named materials"], "openingsAndShading": "...", "landscapeAndGround": "...", "skyAndLight": "...", "contextBuildings": "...", "peopleCues": ["0–3 culturally right people cues"], "negatives": ["3–6 things that would look wrong here"], "summaryForUser": "two plain sentences"}`,
-  formCheck: (m) => `Image 1 is an architect's massing model. Image 2 is a render that must show exactly the same building form from the same camera position.
+  formCheck: (m, refForm) => `Image 1 is an architect's massing model. Image 2 is a render that must show exactly the same building form from the same camera position.${refForm ? `
+The architect also gave a style reference of a different building, whose form is: ${refForm} If image 2 shows any of that form (its height, storeys, roof, volumes or outline) instead of the massing's, score below 60 and say so.` : ""}
 The massing has ${m.volumeCount} volumes: ${m.overallDescription} Distinctive outline features: ${m.silhouetteNotes}
 Check strictly: the number of volumes; each volume's position, stacking, rotation and cantilever; relative heights and widths; roof shapes; ground relationship; camera angle. Added windows, materials, landscape and sky are allowed and must not lower the score. A different building that merely looks similar must score below 70.
 Reply with only a JSON object:
@@ -1147,7 +1158,7 @@ async function readReference() {
     const r = await askJSON(ASK.reference, [S.reference.blob]);
     if (!r || !Array.isArray(r.materials)) throw new Error("The reading was incomplete. Try again.");
     const arr = (x) => (Array.isArray(x) ? x.map(String) : []);
-    S.refAnalysis = { materials: arr(r.materials), palette: arr(r.palette), lightAndSky: String(r.lightAndSky || ""), timeOfDay: String(r.timeOfDay || ""), weather: String(r.weather || ""), vegetation: arr(r.vegetation), ground: String(r.ground || ""), context: String(r.context || ""), fenestrationCharacter: String(r.fenestrationCharacter || ""), formWarning: String(r.formWarning || "") };
+    S.refAnalysis = { materials: arr(r.materials), palette: arr(r.palette), openings: String(r.openings || ""), detailing: String(r.detailing || ""), style: String(r.style || ""), lightAndSky: String(r.lightAndSky || ""), timeOfDay: String(r.timeOfDay || ""), weather: String(r.weather || ""), vegetation: arr(r.vegetation), ground: String(r.ground || ""), context: String(r.context || ""), fenestrationCharacter: String(r.fenestrationCharacter || ""), formWarning: String(r.formWarning || "") };
     S.rStatus = "done";
   } catch (e) { S.rStatus = "error"; S.rError = e.message; }
   renderAll();
@@ -1165,7 +1176,25 @@ async function enhanceBrief() {
   renderAll();
 }
 const preparedMassing = async () => (S.prepared ??= await framed(S.massing));
-const checkForm = (pic) => askJSON(ASK.formCheck(S.analysis), [S.massing.blob, pic.blob]);
+const checkForm = (pic) => askJSON(ASK.formCheck(S.analysis, S.reference ? S.refAnalysis?.formWarning || "unknown" : ""), [S.massing.blob, pic.blob]);
+/** The reference cut into shuffled squares with gaps: its textures, colours and light without its building shape. */
+async function swatchBoard(ref) {
+  if (ref.swatch) return ref.swatch;
+  const n = 5, gap = 14, tile = 200, side = n * tile + (n + 1) * gap;
+  const c = Object.assign(document.createElement("canvas"), { width: side, height: side });
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, side, side);
+  const sw = ref.w / n, sh = ref.h / n;
+  const cells = Array.from({ length: n * n }, (_, i) => i);
+  for (let i = cells.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [cells[i], cells[j]] = [cells[j], cells[i]]; }
+  if (cells.every((v, i) => v === i)) cells.reverse(); // never left in their original places
+  cells.forEach((src, k) => {
+    const sx = (src % n) * sw, sy = Math.floor(src / n) * sh, s = Math.min(sw, sh); // square crop from each cell
+    ctx.drawImage(ref.img, sx + (sw - s) / 2, sy + (sh - s) / 2, s, s, gap + (k % n) * (tile + gap), gap + Math.floor(k / n) * (tile + gap), tile, tile);
+  });
+  ref.swatch = await toBlob(c, "image/jpeg", 0.92);
+  return ref.swatch;
+}
 async function renderOutput(kind) {
   const h = heroV();
   const instruction = (S.changeText || "").trim();
@@ -1173,7 +1202,7 @@ async function renderOutput(kind) {
   S.r1 = { busy: true, stage: "Rendering on fal.ai…", error: "" }; renderAll();
   try {
     const massing = await preparedMassing();
-    const refBlob = S.reference ? S.reference.blob : null;
+    const refBlob = S.reference && kind !== "change" ? await swatchBoard(S.reference) : null;
     const base = kind === "change" ? await framed(h) : null;
     const best = await generateChecked(
       (corrective) => kind === "change"
@@ -1181,6 +1210,7 @@ async function renderOutput(kind) {
         : genImage(ENDPOINTS.hero, stage1Prompt(corrective), refBlob ? [massing, refBlob] : [massing], "Nano Banana Pro"),
       checkForm,
       (stage) => { S.r1.stage = stage; renderR1R(); },
+      S.reference && kind !== "change" ? 80 : 70,
     );
     const v = { id: uid(), ...best.pic, check: best.check, label: kind === "change" ? `Change: ${instruction}` : "" };
     S.versions.unshift(v); S.heroId = v.id;
