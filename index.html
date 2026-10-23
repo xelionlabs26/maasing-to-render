@@ -24,7 +24,7 @@
   --page:#161513;--surface:#1f1e1b;--sunk:#2a2925;--ink:#f1efe9;--muted:#b0aca2;--faint:#7f7b72;--line:#34322d;
   --accent:#e0703c;--accent-ink:#1a0d06;--accent-soft:#3a2418;--pill:#f1efe9;--pill-ink:#1c1b18;
   --warn-bg:#2c2210;--warn-line:#5c4518;--warn-ink:#f3c87a;--ok:#6cc07c;--bad:#ff8a80;color-scheme:dark}
-*,*::before,*::after{box-sizing:inherit}
+*,*::before,*::after{box-sizing:border-box}
 html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
 body{margin:0;background:var(--page);color:var(--ink);font:15px/1.55 "Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--page)}
@@ -182,7 +182,7 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--accent)}
 .slot .pic>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;max-width:none}
 .slot .cap{display:flex;align-items:center;gap:4px;padding:8px 10px;font-size:13.5px}
 .slot .cap span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.icon{width:30px;height:30px;border-radius:50%;border:0;background:none;display:grid;place-items:center;cursor:pointer;color:var(--ink)}
+.icon{flex:none;width:30px;height:30px;border-radius:50%;border:0;background:none;display:grid;place-items:center;cursor:pointer;color:var(--ink)}
 .icon:hover{background:var(--sunk)}
 .flag{position:absolute;left:8px;top:8px;background:var(--warn-bg);color:var(--warn-ink);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:500;box-shadow:0 1px 4px rgba(0,0,0,.12)}
 .over{position:absolute;inset:0;display:grid;place-items:center;background:color-mix(in srgb,var(--page) 70%,transparent)}
@@ -201,8 +201,7 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--accent)}
 .brief{padding:0 10px 10px;font-size:13px;color:var(--muted)}
 .scalecv{display:block;width:100%;height:auto;border-radius:12px;margin-top:12px;background:var(--sunk)}
 
-.scalecv{touch-action:none;cursor:grab}
-.range{width:100%;accent-color:var(--accent)}
+.scalecv{touch-action:manipulation;cursor:grab}
 .brief summary{cursor:pointer;width:max-content}
 .brief p{margin:6px 0 0;line-height:1.45}
 @media (prefers-reduced-motion:no-preference){.reelframe .fg.kb{animation:kb 6s ease-in-out infinite alternate}}
@@ -223,6 +222,74 @@ dialog .dbody{padding:14px 22px 22px}
 input[type=password]{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 13px}
 input[type=password]:focus{outline:none;border-color:var(--accent)}
 .ok{color:var(--ok);font-size:14px;margin-top:10px}
+
+/* ───────────── phones, tablets and touch ───────────── */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{overflow-wrap:break-word}
+button,a,label,summary,input,textarea,select{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.bar,main{padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+.brand,.chipstat{white-space:nowrap}
+.btn:active:not(:disabled),.chip:active:not(:disabled),.icon:active{transform:scale(.97)}
+#brief{font-size:14.5px}
+dialog{max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain}
+.flag{border:0;cursor:pointer;font-family:inherit}
+.only-touch{display:none}
+@media (hover:none) and (pointer:coarse){.only-touch{display:inline}.only-mouse{display:none}}
+.sizer{display:flex;align-items:center;gap:10px}
+.sizer .range{flex:1;min-width:0}
+.btn.sq{width:40px;padding:0;font-size:20px;line-height:1}
+.range{-webkit-appearance:none;appearance:none;width:100%;height:40px;margin:0;background:transparent;cursor:pointer}
+.range::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--line)}
+.range::-moz-range-track{height:6px;border-radius:3px;background:var(--line)}
+.range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:26px;height:26px;margin-top:-10px;border-radius:50%;background:var(--accent);border:3px solid var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.range::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--accent);border:3px solid var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.range:disabled{opacity:.45;cursor:not-allowed}
+.zoomable{cursor:zoom-in}
+#viewer{width:min(1100px,calc(100vw - 16px));max-width:none}
+#viewer .dhead{padding:10px 10px 10px 16px;align-items:center}
+#viewer .vbody{padding:0 10px 10px}
+#viewer img{display:block;width:100%;height:auto;max-height:calc(100dvh - 120px);object-fit:contain;background:var(--sunk);border-radius:10px}
+@media (pointer:coarse){
+  .btn,.btn.sm,.btn.pill{height:auto;min-height:44px}
+  .btn.sm,.btn.pill{padding:0 16px;font-size:15px}
+  .btn.sq{width:44px}
+  .chip,.chip.sm{height:auto;min-height:44px;padding:0 16px;font-size:15px}
+  .chips{gap:10px}
+  .icon{width:44px;height:44px}
+  .linkbtn,.morebtn{display:inline-flex;align-items:center;min-height:44px}
+  summary{padding:12px 0}
+  .shotlist input{width:22px;height:22px;margin-top:1px}
+  .range{height:44px}
+  .flag::before{content:"";position:absolute;inset:-12px -8px}
+}
+@media (pointer:coarse),(max-width:760px){input[type=text],input[type=password],textarea,#brief{font-size:16px}}
+@media (max-width:560px){
+  .bar{padding-top:10px;padding-bottom:10px;gap:8px}
+  main{padding-top:20px;padding-bottom:56px}
+  .rowhead{margin-bottom:14px}
+  .rowhead h2{font-size:22px}
+  .rowhead p{font-size:14px}
+  .box,.go{padding:16px}
+  .down{margin:12px 0}
+  .down svg{height:36px}
+  .flow{gap:14px}
+  .arrow{display:none}
+  .grid3{grid-template-columns:minmax(0,1fr);gap:14px}
+  #r3r .slot{width:100%;max-width:380px;margin:0 auto}
+  .slot.empty~.slot.empty{display:none}
+  .slot.empty{aspect-ratio:auto!important;height:120px;display:grid;place-items:center;color:var(--faint);font-size:14px}
+  .slot.empty::after{content:attr(data-empty)}
+  .drop:has(.pick){aspect-ratio:auto!important;min-height:168px}
+  .drop .pick{padding:20px 16px}
+  .keyrow{flex-direction:column}
+  .keyrow .btn{width:100%}
+  dialog{width:calc(100vw - 16px);max-width:calc(100vw - 16px)}
+  dialog .dhead{padding:16px 16px 0}
+  dialog .dbody{padding:12px 16px 18px}
+  .notice{padding:12px 14px;margin-bottom:24px}
+  .banner{padding:12px 14px;font-size:14px}
+}
+@media (max-width:420px){.chipstat{display:none}}
 </style>
 </head>
 <body>
@@ -246,6 +313,10 @@ input[type=password]:focus{outline:none;border-color:var(--accent)}
   </section>
 </main>
 <div class="toast" id="toast" role="status" hidden></div>
+<dialog id="viewer" aria-labelledby="viewer-title">
+  <div class="dhead"><span class="small" id="viewer-title"></span><div class="btns" style="margin:0;flex-wrap:nowrap"><button class="btn sm" type="button" id="viewer-save">Save</button><button class="icon" type="button" id="viewer-close" aria-label="Close">✕</button></div></div>
+  <div class="vbody"><img id="viewer-img" alt=""></div>
+</dialog>
 <dialog id="settings" aria-labelledby="set-title">
   <div class="dhead"><div><h2 id="set-title">Settings</h2><p class="help" style="margin-top:4px">Everything runs on fal.ai with your key: Nano Banana Pro for the render, Nano Banana 2 for lifestyle shots, Kling for reels.</p></div><button class="icon" type="button" id="close-settings" aria-label="Close">✕</button></div>
   <div class="dbody">
@@ -272,11 +343,20 @@ function toast(msg) {
   t.textContent = msg; t.hidden = false;
   clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.hidden = true), 4500);
 }
-function saveFile(filename, blob) {
+function download(filename, blob) {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob); a.download = filename;
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+/** On phones and tablets, the share sheet (Save to Photos, Instagram, WhatsApp…); elsewhere a download. Call straight from a tap. */
+function saveFile(filename, blob) {
+  const file = typeof File === "function" ? new File([blob], filename, { type: blob.type || "application/octet-stream" }) : null;
+  if (file && matchMedia("(pointer:coarse)").matches && navigator.canShare?.({ files: [file] })) {
+    navigator.share({ files: [file] }).catch((e) => { if (e?.name !== "AbortError") download(filename, blob); });
+    return;
+  }
+  download(filename, blob);
 }
 
 /* ───────────── fal.ai (your key, this browser only) ───────────── */
@@ -443,16 +523,41 @@ async function readImage(file) {
   if (Math.min(img.naturalWidth, img.naturalHeight) < 300) throw new Error("That image is too small. Use at least 300 px on the short side.");
   return { blob: file, url, img, w: img.naturalWidth, h: img.naturalHeight };
 }
+/** Safari (iPhone and iPad included) has no canvas filters; blurs there are made by shrinking hard and enlarging smoothly. */
+const CANVAS_FILTER = typeof CanvasRenderingContext2D !== "undefined" && "filter" in CanvasRenderingContext2D.prototype;
+const scratchPads = {};
+function scratch(name, w, h) {
+  let p = scratchPads[name];
+  if (!p || p.c.width !== w || p.c.height !== h) { const c = Object.assign(document.createElement("canvas"), { width: w, height: h }); p = scratchPads[name] = { c, ctx: c.getContext("2d") }; }
+  return p;
+}
+/** Cover the whole W×H with a blurred copy of src's region (optionally darkened), on every browser. */
+function drawBlurred(ctx, src, sx, sy, sw, sh, W, H, px, dim = 0) {
+  const k = Math.max(W / sw, H / sh) * 1.06, dw = sw * k, dh = sh * k, dx = (W - dw) / 2, dy = (H - dh) / 2;
+  const b = scratch("blur-b", Math.max(8, Math.round(W / 4)), Math.max(8, Math.round(H / 4))), sb = b.c.width / W;
+  b.ctx.imageSmoothingQuality = "high";
+  if (CANVAS_FILTER) {
+    b.ctx.filter = `blur(${Math.max(1, px / 4)}px)`;
+    b.ctx.drawImage(src, sx, sy, sw, sh, dx * sb, dy * sb, dw * sb, dh * sb);
+    b.ctx.filter = "none";
+  } else {
+    const f = Math.max(6, px);
+    const a = scratch("blur-a", Math.max(2, Math.round(W / f)), Math.max(2, Math.round(H / f))), sa = a.c.width / W;
+    a.ctx.imageSmoothingQuality = "high";
+    a.ctx.drawImage(src, sx, sy, sw, sh, dx * sa, dy * sa, dw * sa, dh * sa);
+    b.ctx.drawImage(a.c, 0, 0, b.c.width, b.c.height);
+  }
+  const m = px * 1.5; // overscan, so the blur's soft edges fall outside the picture
+  ctx.save(); ctx.imageSmoothingQuality = "high"; ctx.drawImage(b.c, -m, -m, W + 2 * m, H + 2 * m); ctx.restore();
+  if (dim) { ctx.fillStyle = `rgba(0,0,0,${dim})`; ctx.fillRect(0, 0, W, H); }
+}
 /** Pad to the provider ratio with a blurred copy of the picture itself, original pixels on top. */
 async function padImage(img, region) {
   const w = img.naturalWidth, h = img.naturalHeight;
   const cw = Math.round(w / region.w), ch = Math.round(h / region.h);
   const c = Object.assign(document.createElement("canvas"), { width: cw, height: ch });
   const ctx = c.getContext("2d");
-  const s = Math.max(cw / w, ch / h);
-  ctx.filter = "blur(28px)";
-  ctx.drawImage(img, (cw - w * s) / 2, (ch - h * s) / 2, w * s, h * s);
-  ctx.filter = "none";
+  drawBlurred(ctx, img, 0, 0, w, h, cw, ch, 28);
   ctx.drawImage(img, Math.round(region.x * cw), Math.round(region.y * ch));
   return toBlob(c);
 }
@@ -760,7 +865,7 @@ function dropHTML(kind, data, hint, opts = {}) {
     <input type="file" class="sr" accept="image/png,image/jpeg,image/webp" data-file="${kind}" aria-label="${esc(opts.label || "Choose an image")}" tabindex="-1">
     ${data
       ? `<img class="pic" src="${data.url}" alt="${esc(opts.label || "")}"><div class="acts"><button class="btn pill" data-act="pick">Replace</button>${opts.removable ? `<button class="btn pill" data-act="remove-${kind}" aria-label="Remove ${esc(opts.label || "")}">✕</button>` : ""}</div>`
-      : `<button class="pick" data-act="pick">${ICON.up}<strong>Drop an image or choose a file</strong><span>${esc(hint)}</span></button>`}
+      : `<button class="pick" data-act="pick">${ICON.up}<strong><span class="only-mouse">Drop an image or choose a file</span><span class="only-touch">Tap to choose a photo</span></strong><span>${esc(hint)}</span></button>`}
     ${busy ? `<div class="over"><span class="score">Opening…</span></div>` : ""}
   </div>`;
 }
@@ -914,7 +1019,7 @@ function renderPromptBox() {
   else if (S.eStatus === "error") x = `<p class="err">${esc(S.eError)}</p>`;
   else if (e) x = `<p class="small" style="margin-top:6px">${esc(e.summaryForUser)}</p>`;
   $("#b-prompt").innerHTML = `<h3>Prompt</h3><p class="help">${S.reference ? "Anything to add (optional)." : "Describe the place, climate and feel."}</p>
-    <label class="sr" for="brief">Prompt</label><textarea id="brief" maxlength="600" style="margin-top:12px;min-height:124px;font-size:14.5px" placeholder="e.g. a weekend house on a hill in Rajasthan, late afternoon">${esc(S.brief)}</textarea>
+    <label class="sr" for="brief">Prompt</label><textarea id="brief" maxlength="600" style="margin-top:12px;min-height:124px" placeholder="e.g. a weekend house on a hill in Rajasthan, late afternoon">${esc(S.brief)}</textarea>
     <button class="linkbtn" style="margin-top:8px;font-size:13.5px" data-act="enhance" ${!S.analysis || S.eStatus === "busy" ? "disabled" : ""}>${e ? "Expand again" : "Expand with AI"}</button>${x}`;
 }
 function renderGoBox() {
@@ -933,7 +1038,7 @@ function renderR1R() {
   if (h) {
     const low = !h.check || h.check.score < 85;
     const ov = S.outline ? `<img class="ov" src="${massingEdges(S.massing.img, S.massing.key)}" alt="">` : "";
-    html += `<div class="outwrap" style="margin-top:12px"><div class="outpic" style="aspect-ratio:${h.w} / ${h.h};max-height:620px"><img class="main" src="${h.url}" alt="Your render">${ov}</div></div>
+    html += `<div class="outwrap" style="margin-top:12px"><div class="outpic" style="aspect-ratio:${h.w} / ${h.h};max-height:620px"><img class="main zoomable" src="${h.url}" alt="Your render" data-act="view-hero">${ov}</div></div>
       <div style="padding:14px 18px 18px">
         ${low ? `<div class="banner" role="alert" style="margin-bottom:10px">${ICON.warn}<div>${WARNING}</div></div>` : ""}
         ${low && h.check?.issues?.length ? `<p class="small" style="margin:0 0 10px">${esc(h.check.issues[0])}</p>` : ""}
@@ -955,15 +1060,15 @@ function renderR1R() {
 const shotList = () => (S.useSuggested && S.storyboard ? S.storyboard : PRESETS);
 /** Step 1 of the lifestyle shots: the owner checks the measured heights against 1.75 m figures and corrects them. */
 function scaleBoxHTML(h) {
-  const head = `<h3>Check the human scale</h3><p class="help">The white figure is a 1.75 m adult. Move the slider until they look like a real person standing beside your building, and drag them next to a door to compare. Every person, animal and plant in the shots is sized from this.</p>`;
+  const head = `<h3>Check the human scale</h3><p class="help">The white figure is a 1.75 m adult. Move the slider until they look like a real person standing beside your building, and <span class="only-mouse">drag them</span><span class="only-touch">tap the picture to move them</span> next to a door to compare. Every person, animal and plant in the shots is sized from this.</p>`;
   if (!h) return `<div class="box">${head}<p class="small">Generate your Output above first.</p></div>`;
   if (h.scaleState === "busy" || !h.fig) return `<div class="box">${head}${working("Placing the figure…")}</div>`;
   const sc = h.sc, busy = h.scaleState === "measuring";
   const result = h.scaleOk && sc ? `<p class="small" style="margin:10px 0 0;color:var(--ok)">✓ Scale set. Against your figure the building is ${sc.overallHeightM ? `about ${esc(sc.overallHeightM)} m tall, ` : ""}${sc.storeys} ${sc.storeys === 1 ? "storey" : "storeys"} (${esc(sc.anchors.slice(0, 3).map((a) => `${a.feature} ${a.heightM} m`).join(", "))}). If that sounds wrong, resize the figure.</p>` : "";
   return `<div class="box">${head}
     <canvas id="scale-canvas" class="scalecv" aria-label="Your render with a 1.75 m figure standing beside the building. Drag to move the figure."></canvas>
-    <label class="lbl" for="sc-person" style="margin-top:12px">Person size</label>
-    <input type="range" id="sc-person" class="range" min="0.02" max="0.6" step="0.002" value="${h.fig.size}" ${busy ? "disabled" : ""}>
+    <label class="lbl" for="sc-person" style="margin:12px 0 0">Person size</label>
+    <div class="sizer"><button type="button" class="btn sec2 sq" data-act="fig-size" data-d="-1" aria-label="Smaller person" ${busy ? "disabled" : ""}>−</button><input type="range" id="sc-person" class="range" min="0.02" max="0.6" step="any" value="${h.fig.size}" ${busy ? "disabled" : ""}><button type="button" class="btn sec2 sq" data-act="fig-size" data-d="1" aria-label="Bigger person" ${busy ? "disabled" : ""}>+</button></div>
     ${h.scaleErr ? `<p class="err">${esc(h.scaleErr)}</p>` : ""}${result}
     ${h.scaleOk ? "" : `<div style="margin-top:12px">${busy ? working("Measuring the building against your figure…") : `<button class="btn" data-act="confirm-scale">Use this scale</button>`}</div>`}</div>`;
 }
@@ -985,13 +1090,13 @@ function renderR2() {
     <div class="go"><button class="btn lg" data-act="create-shots" ${!h || !ok || !chosen.length || busy ? "disabled" : ""}>${busy ? "Creating…" : `Create ${chosen.length} ${chosen.length === 1 ? "shot" : "shots"}`}</button>${h && !ok ? `<p class="small" style="margin:8px 0 0">Set the human scale above first.</p>` : ""}</div></div>`;
   const ratio = S.massing ? `${S.massing.w} / ${S.massing.h}` : "4 / 3";
   drawScalePreview(h);
-  $("#r2r").innerHTML = `<h3 class="outh">Output images</h3><div class="grid3">${S.shots.length ? S.shots.map(shotSlotHTML).join("") : Array.from({ length: 6 }, () => `<div class="slot empty" style="aspect-ratio:${ratio}"></div>`).join("")}</div>`;
+  $("#r2r").innerHTML = `<h3 class="outh">Output images</h3><div class="grid3">${S.shots.length ? S.shots.map(shotSlotHTML).join("") : Array.from({ length: 6 }, () => `<div class="slot empty" style="aspect-ratio:${ratio}" data-empty="Your lifestyle shots appear here."></div>`).join("")}</div>`;
 }
 function shotSlotHTML(s) {
   const ratio = s.pic ? `${s.pic.w} / ${s.pic.h}` : S.massing ? `${S.massing.w} / ${S.massing.h}` : "4 / 3";
-  const inner = s.pic ? `<img src="${s.pic.url}" alt="${esc(s.recipe.title)}">` : "";
+  const inner = s.pic ? `<img src="${s.pic.url}" alt="${esc(s.recipe.title)}"${s.status === "done" ? ` class="zoomable" data-act="view-shot" data-id="${s.id}"` : ""}>` : "";
   const over = s.status === "rendering" || s.status === "checking" ? `<div class="over" style="${s.pic ? "" : "background:none"}">${working(s.stage || "Creating…")}</div>` : "";
-  const flag = s.status === "done" && s.check && s.check.score < 85 ? `<span class="flag" title="${esc(s.check.issues[0] || "May differ from your building")}">${s.check.kind === "scale" ? "Check scale" : "Check outline"}</span>` : "";
+  const flag = s.status === "done" && s.check && s.check.score < 85 ? `<button type="button" class="flag" data-act="flag-info" data-id="${s.id}" title="${esc(s.check.issues[0] || "May differ from your building")}">${s.check.kind === "scale" ? "Check scale" : "Check outline"}</button>` : "";
   const err = s.status === "error" ? `<p class="err" style="padding:10px;margin:0;font-size:13px">${esc(s.error)}</p>` : "";
   return `<div class="slot"><div class="pic" style="aspect-ratio:${ratio}">${inner}${flag}${over}${err}</div>
     <div class="cap"><span>${esc(s.recipe.title)}</span>
@@ -1023,8 +1128,8 @@ function renderR3() {
       <p class="lbl" style="margin-top:16px">Video</p>${chipsHTML("videoType", S.videoType, [{ v: "lifestyle", l: "Cinematic lifestyle" }, { v: "cta", l: "Lifestyle + call to action" }])}${ctaFields}
       <p class="lbl" style="margin-top:16px">Length</p>${chipsHTML("duration", S.duration, [{ v: "5", l: "5 s" }, { v: "10", l: "10 s" }])}
       <button class="morebtn" style="margin-top:14px" data-act="more3" aria-expanded="${S.more3}">${S.more3 ? "Fewer options" : "More options"}</button>${more}</div>
-    <div class="go"><button class="btn lg" data-act="create-reels" ${sel.length && !busy ? "" : "disabled"}>${busy ? "Creating…" : `Create ${sel.length} ${sel.length === 1 ? "reel" : "reels"}`}</button><p class="small" style="margin:8px 0 0">Each reel takes a few minutes on fal.ai. You can keep working, but keep this tab open while the reels are finished.</p></div></div>`;
-  $("#r3r").innerHTML = `<h3 class="outh">Video output</h3><div class="grid3">${S.reels.length ? S.reels.map(reelSlotHTML).join("") : Array.from({ length: MAX_REELS }, () => `<div class="slot empty" style="aspect-ratio:9 / 16"></div>`).join("")}</div>`;
+    <div class="go"><button class="btn lg" data-act="create-reels" ${sel.length && !busy ? "" : "disabled"}>${busy ? "Creating…" : `Create ${sel.length} ${sel.length === 1 ? "reel" : "reels"}`}</button><p class="small" style="margin:8px 0 0">Each reel takes a few minutes on fal.ai. You can keep working, but keep this page open and on screen while the reels are finished.</p></div></div>`;
+  $("#r3r").innerHTML = `<h3 class="outh">Video output</h3><div class="grid3">${S.reels.length ? S.reels.map(reelSlotHTML).join("") : Array.from({ length: MAX_REELS }, () => `<div class="slot empty" style="aspect-ratio:9 / 16" data-empty="Your reels appear here."></div>`).join("")}</div>`;
 }
 function reelSlotHTML(r) {
   const shot = S.shots.find((s) => s.id === r.shotId);
@@ -1100,6 +1205,7 @@ async function composeReel(clip, { format, region, cta }) {
   const [W, H] = REEL_SIZE[format];
   const url = URL.createObjectURL(clip);
   const v = Object.assign(document.createElement("video"), { muted: true, playsInline: true, preload: "auto", src: url });
+  let onAway = null;
   try {
     await new Promise((res, rej) => { v.onloadeddata = res; v.onerror = () => rej(new Error("the clip couldn’t be read.")); });
     if (cta) await document.fonts?.load?.("600 64px Inter").catch(() => {});
@@ -1110,20 +1216,22 @@ async function composeReel(clip, { format, region, cta }) {
     box.x = Math.round((W - box.w) / 2); box.y = Math.round((H - box.h) / 2);
     const c = Object.assign(document.createElement("canvas"), { width: W, height: H });
     const ctx = c.getContext("2d");
-    const small = Object.assign(document.createElement("canvas"), { width: Math.round(W / 10), height: Math.round(H / 10) });
-    const sctx = small.getContext("2d");
-    const kb = Math.max(small.width / src.w, small.height / src.h);
     const total = v.duration + (cta ? CTA_HOLD : 0);
     const draw = (t) => {
-      sctx.drawImage(v, src.x, src.y, src.w, src.h, (small.width - src.w * kb) / 2, (small.height - src.h * kb) / 2, src.w * kb, src.h * kb);
-      ctx.save(); ctx.imageSmoothingQuality = "high"; ctx.filter = `blur(${Math.round(30 * W / 1080)}px) brightness(0.78)`;
-      ctx.drawImage(small, -60, -60, W + 120, H + 120); ctx.restore();
+      drawBlurred(ctx, v, src.x, src.y, src.w, src.h, W, H, Math.round(30 * W / 1080), 0.22);
       ctx.drawImage(v, src.x, src.y, src.w, src.h, box.x, box.y, box.w, box.h);
       if (cta) drawCta(ctx, W, H, box, cta, t, total);
     };
     const rec = new MediaRecorder(c.captureStream(30), { mimeType: type, videoBitsPerSecond: 10_000_000 });
     const chunks = []; rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
     const stopped = new Promise((res) => { rec.onstop = res; });
+    // Phones stop drawing in the background: pause the clip and the recording there, carry on when the app is back.
+    let away = 0, awaySince = null;
+    onAway = () => {
+      if (document.hidden && awaySince == null) { awaySince = performance.now(); v.pause(); if (rec.state === "recording") rec.pause(); }
+      else if (!document.hidden && awaySince != null) { away += performance.now() - awaySince; awaySince = null; if (rec.state === "paused") rec.resume(); if (!v.ended) v.play().catch(() => {}); }
+    };
+    document.addEventListener("visibilitychange", onAway);
     draw(0); rec.start(500);
     await v.play();
     await new Promise((res) => {
@@ -1131,14 +1239,14 @@ async function composeReel(clip, { format, region, cta }) {
       const tick = () => { if (v.ended) return; draw(v.currentTime); requestAnimationFrame(tick); };
       requestAnimationFrame(tick);
     });
-    const t0 = performance.now();
+    const t0 = performance.now(), away0 = away;
     await new Promise((res) => {
-      const tick = () => { const t = Math.min(total, v.duration + (performance.now() - t0) / 1000); draw(t); if (t >= total) res(); else requestAnimationFrame(tick); };
+      const tick = () => { const t = Math.min(total, v.duration + (performance.now() - t0 - (away - away0)) / 1000); draw(t); if (t >= total) res(); else requestAnimationFrame(tick); };
       tick();
     });
     rec.stop(); await stopped;
     return new Blob(chunks, { type: type.split(";")[0] });
-  } finally { v.removeAttribute("src"); v.load(); URL.revokeObjectURL(url); }
+  } finally { if (onAway) document.removeEventListener("visibilitychange", onAway); v.removeAttribute("src"); v.load(); URL.revokeObjectURL(url); }
 }
 
 /* ───────────── actions (all real, on fal.ai) ───────────── */
@@ -1358,6 +1466,32 @@ $("#save-key").addEventListener("click", async () => {
 $("#remove-key").addEventListener("click", () => { store.set(STORE.key, ""); renderKeyState(); renderAll(); dlg.close(); toast("Key removed from this browser."); });
 $("#save-model").addEventListener("click", () => { const m = $("#vmodel").value.trim(); if (!/^[\w.:/-]{3,120}$/.test(m)) { toast("Use a model name like google/gemini-2.5-flash."); return; } store.set(STORE.model, m === DEFAULT_VISION ? "" : m); toast("Saved."); });
 
+/* ───────────── full-screen viewer ───────────── */
+const viewer = $("#viewer");
+let viewing = null;
+function openViewer(pic, title, filename) {
+  viewing = { pic, filename };
+  $("#viewer-img").src = pic.url; $("#viewer-img").alt = title; $("#viewer-title").textContent = title;
+  if (typeof viewer.showModal === "function") viewer.showModal(); else viewer.setAttribute("open", "");
+}
+$("#viewer-close").addEventListener("click", () => viewer.close());
+$("#viewer-save").addEventListener("click", () => { if (viewing) saveFile(viewing.filename, viewing.pic.blob); });
+viewer.addEventListener("click", (e) => { if (e.target === viewer) viewer.close(); });
+viewer.addEventListener("close", () => { $("#viewer-img").removeAttribute("src"); viewing = null; });
+
+/* ───────────── keep the screen on while fal.ai works (phones would sleep and pause the page) ───────────── */
+let wake = null, wakeAsk = false;
+async function syncWake() {
+  const busy = S.r1.busy || S.aStatus === "busy" || S.rStatus === "busy" || S.shots.some((x) => x.status === "rendering" || x.status === "checking") || S.reels.some((x) => x.status === "rendering");
+  if (busy && !wake && !wakeAsk && navigator.wakeLock && document.visibilityState === "visible") {
+    wakeAsk = true;
+    try { wake = await navigator.wakeLock.request("screen"); wake.addEventListener("release", () => { wake = null; }); } catch {}
+    wakeAsk = false;
+  } else if (!busy && wake) { const w = wake; wake = null; w.release().catch(() => {}); }
+}
+setInterval(syncWake, 2000);
+document.addEventListener("visibilitychange", syncWake);
+
 /* ───────────── interactions ───────────── */
 document.addEventListener("click", async (e) => {
   const b = e.target.closest("[data-act]");
@@ -1384,6 +1518,15 @@ document.addEventListener("click", async (e) => {
     case "pick-version": S.heroId = id; renderAll(); break;
     case "suggest": suggestShots(); break;
     case "confirm-scale": { const h = heroV(); if (h?.fig) confirmScale(h); break; }
+    case "fig-size": {
+      const h = heroV(); if (!h?.fig) break;
+      h.fig.size = Math.min(0.6, h.fig.y - 0.01, Math.max(0.02, +(h.fig.size * (Number(b.dataset.d) > 0 ? 1.04 : 1 / 1.04)).toFixed(4)));
+      const r = $("#sc-person"); if (r) r.value = h.fig.size;
+      drawScalePreview(h); figureMoved(h); break;
+    }
+    case "view-hero": { const h = heroV(); if (h) openViewer(h, "Your render", "render.png"); break; }
+    case "view-shot": { const s = S.shots.find((x) => x.id === id); if (s?.pic) openViewer(s.pic, s.recipe.title, `shot-${s.recipe.title.replace(/[^\w]+/g, "-").toLowerCase()}.png`); break; }
+    case "flag-info": { const s = S.shots.find((x) => x.id === id); if (s?.check) toast(s.check.issues[0] || "This picture may differ from your building. Make it again or compare it with your render."); break; }
     case "use-presets": S.useSuggested = false; S.picked = new Set([0, 1, 2, 3, 4, 5]); renderR2(); break;
     case "use-suggested": S.useSuggested = true; S.picked = new Set([0, 1, 2, 3, 4, 5]); renderR2(); break;
     case "create-shots": {
@@ -1418,7 +1561,7 @@ document.addEventListener("click", async (e) => {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && e.target.id === "change") { e.preventDefault(); $('[data-act="change"]')?.click(); }
 });
-let dragging = null;
+let dragging = null, tap = null;
 function moveFigure(e) {
   const h = heroV(), c = $("#scale-canvas"); if (!h?.fig || !c) return;
   const r = c.getBoundingClientRect();
@@ -1426,9 +1569,24 @@ function moveFigure(e) {
   h.fig.y = Math.min(1, Math.max(h.fig.size + 0.01, (e.clientY - r.top) / r.height));
   drawScalePreview(h);
 }
-document.addEventListener("pointerdown", (e) => { if (e.target.id === "scale-canvas" && heroV()?.scaleState === "ready") { dragging = e.pointerId; e.target.setPointerCapture?.(e.pointerId); moveFigure(e); } });
-document.addEventListener("pointermove", (e) => { if (dragging === e.pointerId) moveFigure(e); });
-document.addEventListener("pointerup", (e) => { if (dragging === e.pointerId) { dragging = null; const h = heroV(); if (h) figureMoved(h); } });
+document.addEventListener("pointerdown", (e) => {
+  if (e.target.id !== "scale-canvas" || heroV()?.scaleState !== "ready") return;
+  if (e.pointerType === "touch") { tap = { id: e.pointerId, x: e.clientX, y: e.clientY }; return; }
+  dragging = e.pointerId; e.target.setPointerCapture?.(e.pointerId); moveFigure(e);
+});
+document.addEventListener("pointermove", (e) => {
+  if (dragging === e.pointerId) moveFigure(e);
+  else if (tap?.id === e.pointerId && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 10) tap = null; // a swipe: the page scrolls
+});
+document.addEventListener("pointerup", (e) => {
+  const h = heroV();
+  if (dragging === e.pointerId) { dragging = null; if (h) figureMoved(h); }
+  else if (tap?.id === e.pointerId) { tap = null; if (e.target.id === "scale-canvas" && h?.fig && h.scaleState === "ready") { moveFigure(e); figureMoved(h); } }
+});
+document.addEventListener("pointercancel", (e) => {
+  if (tap?.id === e.pointerId) tap = null;
+  if (dragging === e.pointerId) { dragging = null; const h = heroV(); if (h) figureMoved(h); }
+});
 let briefTimer;
 document.addEventListener("input", (e) => {
   const t = e.target;
