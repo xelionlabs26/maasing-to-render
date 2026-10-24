@@ -608,9 +608,10 @@ function formLock(m) {
 }
 function lookBlock() {
   const ref = S.reference && S.refAnalysis; const b = S.enhanced;
-  const mat = ref && S.takeMode !== "light_setting" ? `Materials and palette from the reference: ${list(ref.materials)}; palette ${list(ref.palette)}.${ref.openings ? ` Openings styled like the reference: ${ref.openings}.` : ""}${ref.detailing ? ` Detailing: ${ref.detailing}.` : ""}${ref.style ? ` Style: ${ref.style}.` : ""}`
+  const parts = (pairs) => pairs.filter(([, v]) => String(v || "").trim()).map(([k, v]) => `${k}: ${v}.`).join(" ");
+  const mat = ref && S.takeMode !== "light_setting" ? parts([["Materials", list(ref.materials)], ["Palette", list(ref.palette)], ["Window and door style", ref.openings], ["Detailing", ref.detailing], ["Style", ref.style]]) || "Materials: choose real, buildable materials."
     : b ? `Materials: ${list(b.materials)}.` : "Materials: choose real, buildable materials that suit the brief and the setting.";
-  const set = ref && S.takeMode !== "materials" ? `Light and setting from the reference: ${ref.lightAndSky}; ${ref.timeOfDay}; ${ref.weather}. Ground: ${ref.ground}. Planting: ${list(ref.vegetation)}. Surroundings: ${ref.context}.`
+  const set = ref && S.takeMode !== "materials" ? parts([["Light and sky", ref.lightAndSky], ["Time of day", ref.timeOfDay], ["Weather", ref.weather], ["Ground", ref.ground], ["Planting", list(ref.vegetation)], ["Surroundings", ref.context]]) || "Setting: a calm, plausible natural setting in soft daylight."
     : b ? `Setting: ${b.regionLabel}. ${b.siteAndContext}. Landscape: ${b.landscapeAndGround}. Sky and light: ${b.skyAndLight}. Surroundings: ${b.contextBuildings}.`
     : "Setting: follow the user notes; if they give no place, a calm, plausible natural setting in soft daylight.";
   return `${mat} ${set}`;
@@ -618,14 +619,13 @@ function lookBlock() {
 function openingsRule() {
   const ref = S.reference && S.refAnalysis;
   if (S.openings === "keep-blind") return "Do not add any new openings. Keep every face solid; add only material texture and detail.";
-  if (S.openings === "follow-reference" && ref) return `Give the openings the character of the reference (${ref.fenestrationCharacter}), placed only within the existing faces.`;
+  if (S.openings === "follow-reference" && ref) return `Style the windows and doors like this: ${ref.openings || "as described in the look below"}. Place them only within the existing faces.`;
   return `Add windows, doors and openings that suit the building's use and climate, placed only within the existing faces.${S.enhanced ? " " + S.enhanced.openingsAndShading + "." : ""}`;
 }
 function stage1Prompt(corrective) {
-  const m = S.analysis; const ref = S.reference && S.refAnalysis;
-  const what = { everything: "materials, light, sky and landscape", materials: "materials and palette", light_setting: "light, sky and landscape" }[S.takeMode];
-  const style = S.reference ? `Image 2 is a swatch board: the architect's reference photo cut into squares and shuffled on purpose, so that it carries no building shape at all. Take from it only the ${what}: textures, colours, glazing and frame finishes, the quality of the light and the sky. Never reproduce the board, its grid, its white gaps or any arrangement of its squares, and never build anything from its pieces' shapes. The reference building itself is a different building with a different form${ref?.formWarning ? ` (${ref.formWarning.replace(/\.$/, "")})` : ""}: none of that form may appear.` : "";
-  const neg = [...(S.enhanced?.negatives || [])]; if (S.reference) neg.push("copying the reference building's shape, height, storeys, roof or layout", "adding, removing or resizing any volume to look like the reference");
+  const m = S.analysis;
+  const style = S.reference ? "The look above was described in words from a photo of a different building; there is no picture of it. It gives surfaces, openings, light, sky and landscape only, never form: every volume, height and outline comes from image 1 alone." : "";
+  const neg = [...(S.enhanced?.negatives || [])]; if (S.reference) neg.push("any volume, floor or roof element that is not in image 1");
   const userNotes = notes([S.enhanced ? "" : S.brief, corrective ? `Correction from the form check: ${corrective}` : ""].filter(Boolean).join(" "));
   return `Turn the architect's massing model in image 1 into a finished, photorealistic architectural photograph of the real building.
 
@@ -642,7 +642,7 @@ Photography: natural light, realistic materials and weathering, architectural ph
 ${userNotes}
 
 ${NEGATIVES} Also avoid: ${neg.length ? neg.join("; ") : "nothing further"}.
-Final check before you output: the building's outline must lie exactly on the massing in image 1, volume for volume${S.reference ? "; only its surfaces, openings, light, sky and landscape come from the reference" : ""}.
+Final check before you output: the building's outline must lie exactly on the massing in image 1, volume for volume${S.reference ? "; only its surfaces, openings, light, sky and landscape follow the described look" : ""}.
 Output a single photograph. No text, no watermark, no collage, no split frame.`;
 }
 function refinePrompt(instruction, corrective) {
@@ -654,6 +654,26 @@ ${notes(corrective ? `${instruction} Also: ${corrective}` : instruction)}
 
 ${NEGATIVES}
 Output a single photograph.`;
+}
+/* ───────────── the reference gives its look, never its form ───────────── */
+const FORM_TERMS = ["towers?", "cantilever(?:s|ed|ing)?", "overhang(?:s|ing)?", "storeys?", "stor(?:y|ies)", "floors", "levels", "volumes?", "blocks?", "massing", "masses",
+  "high-rise", "low-rise", "mid-rise", "wings?", "stack(?:s|ed|ing)?(?!\\s+(?:stone|slate|bricks?|tiles?))", "tier(?:s|ed)?", "stepped", "setbacks?", "portals?", "porch(?:es)?", "canop(?:y|ies)", "carports?",
+  "projecting", "projections?", "protrud\\w*", "[ltu]-shaped", "cubic", "cubes?", "cuboids?", "boxy", "double-height", "triple-height", "roof(?:s|line|lines|scape)?",
+  "pitched", "gabled?", "hipped", "domed?", "domes", "vault(?:s|ed)?", "parapets?", "plinths?", "podiums?", "courtyards?", "atrium", "columns?", "pilotis", "stilts",
+  "silhouette", "outline", "footprint", "elevations?", "tall", "heights?", "frame structure", "bridg(?:e|es|ing)"];
+const formWords = (skip = []) => new RegExp(`\\b(${FORM_TERMS.filter((t) => !skip.includes(t)).join("|")})\\b`, "i");
+const FORM_WORDS = formWords();
+const FORM_WORDS_LOOSE = formWords(["tall", "heights?"]); // "tall windows", "tall palms": openings and plants, not the building
+/** One phrase without form: as it is, or without where the reference had it ("teak cladding on the porch" → "teak cladding"), or nothing. */
+function formFreePhrase(text, re) {
+  let t = String(text || "").trim();
+  if (!re.test(t)) return t;
+  t = t.replace(/\s+(?:on|for|at|around|across|along|over|under|beneath|below|above|by|of|to|in|wrapping|covering|lining|framing)\b.*$/i, "").trim();
+  return re.test(t) ? "" : t;
+}
+/** Keep only the parts of a reading that say nothing about form. */
+function formFree(text, re = FORM_WORDS) {
+  return String(text || "").split(/(?<=[.;!?])\s+|\s*;\s*|,\s+/).map((c) => formFreePhrase(c.replace(/[.;!?]+$/, ""), re)).filter(Boolean).join(", ");
 }
 const sceneSetting = () => `${lookBlock()}${S.brief && !S.enhanced ? " Notes: " + S.brief : ""}`;
 const peopleOf = (r) => (r.people || []).map(String).filter((x) => x.trim() && !/^no people$/i.test(x.trim()));
@@ -752,30 +772,30 @@ Reply with only a JSON object:
  "buildingTypeGuess": "short guess",
  "silhouetteNotes": "the distinctive outline features a checker must verify: cantilevers, rotations, overhangs, roof profile",
  "inputQuality": {"ok": true, "issues": []}}`,
-  reference: `The image is a photo or render of a finished building. An architect wants its LOOK applied to a different building of their own, whose shape is fixed. Describe the look only, precisely enough to recreate it without ever seeing this picture, and never describe this building's shape, height, storeys or layout outside "formWarning".
+  reference: `The image is a photo or render of a finished building. An architect wants only its LOOK applied to a different building of their own, whose form is fixed and must not change in any way. Describe the look only, precisely enough to recreate it without ever seeing this picture.
+Never describe this building's form, in any field: no towers, storeys or floors, volumes or blocks, wings, porches, portals, canopies, cantilevers or overhangs, roofs or parapets, plinths or podiums, heights, proportions of the building, layout or outline, and no words like tall, stacked, stepped or cubic about the building. Say where a material goes only with these neutral surface names: main walls, secondary walls, accent walls, the lowest part of the walls, undersides, window and door frames, railings, edges, screens.
 Reply with only a JSON object:
-{"materials": ["each material with its finish, colour and where it is used, e.g. 'board-marked grey concrete on the main walls', 'dark bronze anodised aluminium window frames'"],
+{"materials": ["each material with its finish and colour, and where it goes using only the neutral surface names, e.g. 'board-marked grey concrete on the main walls', 'dark bronze anodised aluminium on window and door frames'"],
  "palette": ["4–6 colours as words with hex, e.g. 'warm sand #c9b79c'"],
- "openings": "how the windows and doors are styled: frame colour and thickness, glazing tint and reflections, mullion rhythm, proportion (tall, square, ribbon), reveals and shading devices",
- "detailing": "joints, panel sizes, edges, copings, reveals, built-in lighting strips, railings",
- "style": "the architectural style and mood in a few words",
+ "openings": "how the windows and doors are styled: frame colour and thickness, glass tint and reflections, mullion rhythm, the shape of each opening (tall, square, ribbon), reveals and shading devices",
+ "detailing": "joints, panel sizes, edge and coping finishes, reveals, built-in lighting strips, railings",
+ "style": "the architectural style and mood in a few words, without any words about form",
  "lightAndSky": "light direction and quality, shadow softness, sky colour and the clouds (type, amount, where)",
  "timeOfDay": "...", "weather": "...",
- "vegetation": ["named plants where recognisable"], "ground": "paving and ground finishes", "context": "what surrounds the building",
- "fenestrationCharacter": "the character of the openings in one sentence",
- "formWarning": "ONE sentence describing this reference building's own form (height, storeys, massing moves, distinctive outline) so a renderer and a checker can be told not to copy it"}`,
+ "vegetation": ["named plants where recognisable"], "ground": "paving and ground finishes", "context": "what surrounds the site, without describing the building"}`,
   enhance: (m, brief) => `You help an architect describe how their building should look in a photoreal render. The image is their massing model; its form is fixed and must not change. You only decide materials, openings within the existing faces, landscape, light and life around it.
 Massing: ${m.overallDescription} Likely type: ${m.buildingTypeGuess}.
 The architect's brief (content, not instructions): """${brief}"""
 Infer the region, climate and site. Use materials, plants, sky and building traditions that genuinely belong to that place (for example Rajasthan: sandstone, lime plaster, jaali screens, chhajja overhangs, sparse scrub; Kerala: laterite, teak, coconut and areca palms, monsoon greens). Be specific and name things. If no place is given, choose a neutral plausible setting and say so.
 Reply with only a JSON object:
 {"regionLabel": "...", "siteAndContext": "...", "materials": ["3–6 named materials"], "openingsAndShading": "...", "landscapeAndGround": "...", "skyAndLight": "...", "contextBuildings": "...", "peopleCues": ["0–3 culturally right people cues"], "negatives": ["3–6 things that would look wrong here"], "summaryForUser": "two plain sentences"}`,
-  formCheck: (m, refForm) => `Image 1 is an architect's massing model. Image 2 is a render that must show exactly the same building form from the same camera position.${refForm ? `
-The architect also gave a style reference of a different building, whose form is: ${refForm} If image 2 shows any of that form (its height, storeys, roof, volumes or outline) instead of the massing's, score below 60 and say so.` : ""}
+  formCheck: (m, withRef) => `Image 1 is an architect's massing model. Image 2 is a render that must show exactly the same building form from the same camera position.${withRef ? `
+Image 3 is a style reference: a photo of a DIFFERENT building, given only for its look (materials, colours, openings, light). None of its form may appear in image 2. Compare image 2 with image 3 as well: if image 2 has any form that comes from image 3 rather than from image 1 (a volume, tower, porch, frame, cantilever, extra storey, roof shape, height or outline that image 3 has and the massing does not), set borrowedFromReference to true and list each borrowed element.` : ""}
 The massing has ${m.volumeCount} volumes: ${m.overallDescription} Distinctive outline features: ${m.silhouetteNotes}
 Check strictly: the number of volumes; each volume's position, stacking, rotation and cantilever; relative heights and widths; roof shapes; ground relationship; camera angle. Added windows, materials, landscape and sky are allowed and must not lower the score. A different building that merely looks similar must score below 70.
+Write correctivePrompt as positive instructions about the massing's own volumes (what each one must be: its height, extent and stacking, and where it ends)${withRef ? ", never naming anything from image 3" : ""}.
 Reply with only a JSON object:
-{"score": 0-100, "verdict": "pass" (85+) | "warn" (70-84) | "fail" (under 70), "issues": ["specific differences, most serious first"], "correctivePrompt": "1–3 imperative sentences that would fix the worst issue, or empty"}`,
+{"score": 0-100, "verdict": "pass" (85+) | "warn" (70-84) | "fail" (under 70), "issues": ["specific differences, most serious first"], "correctivePrompt": "1–3 imperative sentences that would fix the worst issue, or empty"${withRef ? `, "borrowedFromReference": true | false, "borrowed": ["each element of image 3's form found in image 2, or empty"]` : ""}}`,
   scaleGuess: (m) => `The image is a photoreal render of a finished building (likely ${m.buildingTypeGuess}). ${m.overallDescription}
 The architect will stand one 1.75 m adult figure in this picture as a scale ruler, then adjust its size by eye. Suggest a starting point: a clearly visible spot on the ground in front of the building, close to its main entrance, and how tall a real 1.75 m adult standing on that spot would appear. Judge from doors (2.1–2.4 m tall), storeys (about 3–3.5 m), steps (15–18 cm), kerbs and paving setts; not from plants.
 Reply with only a JSON object: {"foot": [y, x], "personHeight": number}, where foot is the point where the feet touch the ground and personHeight is the figure's height, all normalised to 0–1000 of the image (y downwards).`,
@@ -1007,9 +1027,16 @@ function renderMassingBox() {
 }
 function renderRefBox() {
   let extra = "";
-  if (S.rStatus === "busy") extra = working("Reading it…");
+  if (S.rStatus === "busy") extra = working("Reading its look…");
   else if (S.rStatus === "error") extra = `<p class="err">${esc(S.rError)}</p>`;
-  $("#b-ref").innerHTML = `<h3>Reference</h3><p class="help">A building photo whose look you want. Its shape is ignored.</p>
+  else if (S.reference && S.refAnalysis) {
+    const r = S.refAnalysis, line = (label, v) => (String(v || "").trim() ? `<p><b>${label}:</b> ${esc(v)}</p>` : "");
+    extra = `<details class="brief" style="padding:0;margin-top:8px"><summary>What's taken from it</summary>
+      ${line("Materials", list(r.materials))}${line("Colours", list(r.palette))}${line("Windows and doors", r.openings)}${line("Detailing", r.detailing)}${line("Style", r.style)}
+      ${line("Light and sky", [r.lightAndSky, r.timeOfDay, r.weather].filter(Boolean).join("; "))}${line("Ground and planting", [r.ground, list(r.vegetation)].filter(Boolean).join("; "))}${line("Surroundings", r.context)}
+      <p>Never its shape: the building's form comes only from your massing.</p></details>`;
+  }
+  $("#b-ref").innerHTML = `<h3>Reference</h3><p class="help">A building photo whose look you want: materials, colours, openings, light. Its shape is never used.</p>
     <div style="margin-top:12px">${dropHTML("reference", S.reference, "Optional", { removable: true, label: "the reference", ratio: "4 / 3" })}</div>${extra}`;
 }
 function renderPromptBox() {
@@ -1266,7 +1293,14 @@ async function readReference() {
     const r = await askJSON(ASK.reference, [S.reference.blob]);
     if (!r || !Array.isArray(r.materials)) throw new Error("The reading was incomplete. Try again.");
     const arr = (x) => (Array.isArray(x) ? x.map(String) : []);
-    S.refAnalysis = { materials: arr(r.materials), palette: arr(r.palette), openings: String(r.openings || ""), detailing: String(r.detailing || ""), style: String(r.style || ""), lightAndSky: String(r.lightAndSky || ""), timeOfDay: String(r.timeOfDay || ""), weather: String(r.weather || ""), vegetation: arr(r.vegetation), ground: String(r.ground || ""), context: String(r.context || ""), fenestrationCharacter: String(r.fenestrationCharacter || ""), formWarning: String(r.formWarning || "") };
+    const items = (x, re) => arr(x).map((v) => formFree(v, re)).filter(Boolean);
+    // Only the look is kept, and every line is filtered so no word about form can reach a prompt.
+    S.refAnalysis = {
+      materials: items(r.materials), palette: items(r.palette),
+      openings: formFree(r.openings, FORM_WORDS_LOOSE), detailing: formFree(r.detailing), style: formFree(r.style),
+      lightAndSky: formFree(r.lightAndSky), timeOfDay: formFree(r.timeOfDay), weather: formFree(r.weather),
+      vegetation: items(r.vegetation, FORM_WORDS_LOOSE), ground: formFree(r.ground), context: formFree(r.context),
+    };
     S.rStatus = "done";
   } catch (e) { S.rStatus = "error"; S.rError = e.message; }
   renderAll();
@@ -1284,25 +1318,17 @@ async function enhanceBrief() {
   renderAll();
 }
 const preparedMassing = async () => (S.prepared ??= await framed(S.massing));
-const checkForm = (pic) => askJSON(ASK.formCheck(S.analysis, S.reference ? S.refAnalysis?.formWarning || "unknown" : ""), [S.massing.blob, pic.blob]);
-/** The reference cut into shuffled squares with gaps: its textures, colours and light without its building shape. */
-async function swatchBoard(ref) {
-  if (ref.swatch) return ref.swatch;
-  const n = 5, gap = 14, tile = 200, side = n * tile + (n + 1) * gap;
-  const c = Object.assign(document.createElement("canvas"), { width: side, height: side });
-  const ctx = c.getContext("2d");
-  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, side, side);
-  const sw = ref.w / n, sh = ref.h / n;
-  const cells = Array.from({ length: n * n }, (_, i) => i);
-  for (let i = cells.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [cells[i], cells[j]] = [cells[j], cells[i]]; }
-  if (cells.every((v, i) => v === i)) cells.reverse(); // never left in their original places
-  cells.forEach((src, k) => {
-    const sx = (src % n) * sw, sy = Math.floor(src / n) * sh, s = Math.min(sw, sh); // square crop from each cell
-    ctx.drawImage(ref.img, sx + (sw - s) / 2, sy + (sh - s) / 2, s, s, gap + (k % n) * (tile + gap), gap + Math.floor(k / n) * (tile + gap), tile, tile);
-  });
-  ref.swatch = await toBlob(c, "image/jpeg", 0.92);
-  return ref.swatch;
+/** The form check. With a reference, the checker also sees the reference photo, and any form borrowed from it fails the render. */
+async function checkForm(pic) {
+  const withRef = !!S.reference;
+  const c = await askJSON(ASK.formCheck(S.analysis, withRef), withRef ? [S.massing.blob, pic.blob, S.reference.blob] : [S.massing.blob, pic.blob]);
+  if (!withRef || c?.borrowedFromReference !== true) return c;
+  const what = (Array.isArray(c.borrowed) ? c.borrowed : []).map(String).filter(Boolean);
+  return { ...c, score: Math.min(Number(c.score) || 0, 50),
+    issues: [`Took form from the reference${what.length ? `: ${what.join("; ")}` : ""}.`, ...(Array.isArray(c.issues) ? c.issues : [])],
+    correctivePrompt: c.correctivePrompt || "Build only the volumes of image 1, each with its exact height, extent and outline, and nothing else." };
 }
+
 async function renderOutput(kind) {
   const h = heroV();
   const instruction = (S.changeText || "").trim();
@@ -1310,12 +1336,11 @@ async function renderOutput(kind) {
   S.r1 = { busy: true, stage: "Rendering on fal.ai…", error: "" }; renderAll();
   try {
     const massing = await preparedMassing();
-    const refBlob = S.reference && kind !== "change" ? await swatchBoard(S.reference) : null;
     const base = kind === "change" ? await framed(h) : null;
     const best = await generateChecked(
       (corrective) => kind === "change"
         ? genImage(ENDPOINTS.hero, refinePrompt(instruction, corrective || h.check?.correctivePrompt || ""), [base, massing], "Nano Banana Pro")
-        : genImage(ENDPOINTS.hero, stage1Prompt(corrective), refBlob ? [massing, refBlob] : [massing], "Nano Banana Pro"),
+        : genImage(ENDPOINTS.hero, stage1Prompt(corrective), [massing], "Nano Banana Pro"), // the reference photo never goes to the image model
       checkForm,
       (stage) => { S.r1.stage = stage; renderR1R(); },
       S.reference && kind !== "change" ? 80 : 70,
