@@ -223,6 +223,26 @@ input[type=password]{width:100%;border:1px solid var(--line);background:var(--su
 input[type=password]:focus{outline:none;border-color:var(--accent)}
 .ok{color:var(--ok);font-size:14px;margin-top:10px}
 
+/* ───────────── cost meter, compare, films, logo, post formats ───────────── */
+.costchip{border:1px solid var(--line);background:var(--surface);border-radius:999px;height:32px;padding:0 12px;font:inherit;font-size:13.5px;font-variant-numeric:tabular-nums;color:var(--muted);cursor:pointer;white-space:nowrap}
+.costchip:hover{background:var(--sunk)}
+.outpic img.under{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;max-width:none}
+.outpic img.main.cmp{clip-path:inset(0 calc(100% - var(--cmp,50%)) 0 0)}
+.cmpline{position:absolute;top:0;bottom:0;left:var(--cmp,50%);width:3px;margin-left:-1.5px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.12),0 0 10px rgba(0,0,0,.35);pointer-events:none}
+.cmprow{display:flex;align-items:center;gap:10px;margin:0 0 12px}
+.cmprow .range{flex:1;min-width:0}
+.filmbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 12px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface)}
+.infilm{display:flex;align-items:center;gap:8px;padding:0 10px 8px;font-size:13.5px;cursor:pointer;width:max-content}
+.infilm input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.prices{display:grid;gap:8px;margin:10px 0}
+.prices label{display:grid;grid-template-columns:minmax(0,1fr) 92px;align-items:center;gap:10px;font-size:14px}
+.prices input{padding:7px 10px}
+.logorow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px}
+.logoimg{max-height:48px;max-width:160px;object-fit:contain;border-radius:6px;padding:4px;background:repeating-conic-gradient(var(--sunk) 0% 25%,var(--surface) 0% 50%) 50%/14px 14px}
+.vfmt{margin-top:10px}
+#settings details+details{margin-top:6px}
+@media (pointer:coarse){.costchip{height:auto;min-height:44px}.infilm{min-height:44px}.infilm input{width:22px;height:22px}.prices input{min-height:44px}}
+
 /* ───────────── phones, tablets and touch ───────────── */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{overflow-wrap:break-word}
@@ -293,7 +313,7 @@ dialog{max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain}
 </style>
 </head>
 <body>
-<header><div class="bar"><span class="brand">Massing Studio</span><div class="hdr"><span class="chipstat" id="keystat">…</span><button class="btn sec2 sm" id="open-settings" type="button">Settings</button></div></div></header>
+<header><div class="bar"><span class="brand">Massing Studio</span><div class="hdr"><span class="chipstat" id="keystat">…</span><button class="costchip" id="spend-chip" type="button">$0.00</button><button class="btn sec2 sm" id="open-settings" type="button">Settings</button></div></div></header>
 <main>
   <div class="notice" id="keybanner" hidden><span>Add your fal.ai key to start. It stays in this browser only.</span> <button class="btn sm" type="button" id="banner-settings">Add fal.ai key</button></div>
 
@@ -315,7 +335,14 @@ dialog{max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain}
 <div class="toast" id="toast" role="status" hidden></div>
 <dialog id="viewer" aria-labelledby="viewer-title">
   <div class="dhead"><span class="small" id="viewer-title"></span><div class="btns" style="margin:0;flex-wrap:nowrap"><button class="btn sm" type="button" id="viewer-save">Save</button><button class="icon" type="button" id="viewer-close" aria-label="Close">✕</button></div></div>
-  <div class="vbody"><img id="viewer-img" alt=""></div>
+  <div class="vbody"><img id="viewer-img" alt="">
+    <div class="chips vfmt" role="radiogroup" aria-label="Post format">
+      <button type="button" class="chip sm" role="radio" aria-checked="true" data-act="post-fmt" data-value="original">Original</button>
+      <button type="button" class="chip sm" role="radio" aria-checked="false" data-act="post-fmt" data-value="4:5">4:5 post</button>
+      <button type="button" class="chip sm" role="radio" aria-checked="false" data-act="post-fmt" data-value="1:1">1:1</button>
+      <button type="button" class="chip sm" role="radio" aria-checked="false" data-act="post-fmt" data-value="9:16">9:16 story</button>
+    </div>
+    <p class="small" id="viewer-note" style="margin:8px 0 0"></p></div>
 </dialog>
 <dialog id="settings" aria-labelledby="set-title">
   <div class="dhead"><div><h2 id="set-title">Settings</h2><p class="help" style="margin-top:4px">Everything runs on fal.ai with your key: Nano Banana Pro for the render, Nano Banana 2 for lifestyle shots, Kling for reels.</p></div><button class="icon" type="button" id="close-settings" aria-label="Close">✕</button></div>
@@ -325,7 +352,16 @@ dialog{max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain}
     <p class="err" id="key-err" hidden></p><p class="ok" id="key-ok" hidden></p>
     <p class="small" style="margin-top:10px">Get it at fal.ai → Dashboard → Keys. It’s saved only in this browser on this device, never in the page’s code or on GitHub. Don’t save it on a shared computer. Every render, shot and reel is billed to your fal.ai balance.</p>
     <button class="linkbtn" type="button" id="remove-key" style="margin-top:6px;font-size:14px" hidden>Remove the key from this browser</button>
-    <details style="margin-top:18px"><summary style="cursor:pointer;font-weight:500">Image-reading model</summary>
+    <details id="costs" style="margin-top:18px"><summary style="cursor:pointer;font-weight:500">Costs</summary>
+      <p class="small">Spent on fal.ai through this app in this browser: <b id="spend-total">$0.00</b> since <span id="spend-since"></span>. It is an estimate: each finished job is counted at the prices below. Correct them from fal.ai’s pricing pages if they change.</p>
+      <div class="prices" id="prices"></div>
+      <button class="linkbtn" type="button" id="spend-reset" style="font-size:14px">Reset the total to zero</button>
+    </details>
+    <details id="logo-sec"><summary style="cursor:pointer;font-weight:500">Studio logo</summary>
+      <p class="small">Optional. Added to the corner of pictures you save in a post format, and to new reels, reveals and films. Saved only in this browser; a PNG with a transparent background works best.</p>
+      <div id="logo-box"></div>
+    </details>
+    <details><summary style="cursor:pointer;font-weight:500">Image-reading model</summary>
       <p class="small">Reads your massing and checks every picture, through fal.ai’s OpenRouter router. Change it only if fal.ai says this one isn’t available.</p>
       <div class="keyrow"><input type="text" id="vmodel" spellcheck="false"><button class="btn sec2" type="button" id="save-model">Save</button></div>
     </details>
@@ -368,7 +404,7 @@ const ENDPOINTS = {
   vision: "openrouter/router/vision",
   keyTest: "fal-ai/nano-banana-pro",
 };
-const STORE = { key: "massing-studio:fal-key", model: "massing-studio:vision-model" };
+const STORE = { key: "massing-studio:fal-key", model: "massing-studio:vision-model", prices: "massing-studio:prices", spend: "massing-studio:spend", logo: "massing-studio:logo", logoPos: "massing-studio:logo-pos" };
 const DEFAULT_VISION = "google/gemini-2.5-flash";
 const store = {
   get: (k) => { try { return localStorage.getItem(k) || ""; } catch { return ""; } },
@@ -403,6 +439,7 @@ async function call(endpoint, input, what) {
   const f = await falReady();
   try {
     const { data } = await f.subscribe(endpoint, { input });
+    addSpend(priceOf(endpoint, input));
     return data;
   } catch (e) {
     throw new Error(falMessage(e, what));
@@ -435,6 +472,39 @@ async function limit(name, max, task) {
   if (l.active >= max) await new Promise((r) => l.queue.push(r));
   l.active++;
   try { return await task(); } finally { l.active--; l.queue.shift()?.(); }
+}
+
+/* ───────────── cost meter (approximate: fal.ai's listed prices, editable in Settings) ───────────── */
+const PRICE_DEFAULTS = { pro: 0.15, pro4k: 0.3, nb2: 0.08, nb24k: 0.16, kling: 0.07, vision: 0.003 };
+const PRICE_LABELS = { pro: "Nano Banana Pro, per picture", pro4k: "Nano Banana Pro at 4K, per picture", nb2: "Nano Banana 2, per picture", nb24k: "Nano Banana 2 at 4K, per picture", kling: "Kling, per second of video", vision: "Image reading, per call" };
+function prices() {
+  try { return { ...PRICE_DEFAULTS, ...JSON.parse(store.get(STORE.prices) || "{}") }; } catch { return { ...PRICE_DEFAULTS }; }
+}
+function priceOf(endpoint, input) {
+  const p = prices(), k4 = input?.resolution === "4K";
+  if (endpoint === ENDPOINTS.hero) return k4 ? p.pro4k : p.pro;
+  if (endpoint === ENDPOINTS.scene) return k4 ? p.nb24k : p.nb2;
+  if (endpoint === ENDPOINTS.video) return p.kling * (Number(input?.duration) || 5);
+  if (endpoint === ENDPOINTS.vision) return p.vision;
+  return 0;
+}
+function spend() {
+  try { const s = JSON.parse(store.get(STORE.spend) || "null"); if (s && Number.isFinite(s.total)) return s; } catch {}
+  return { total: 0, since: new Date().toISOString() };
+}
+function addSpend(usd) {
+  if (!(usd > 0)) return;
+  const s = spend(); s.total = +(s.total + usd).toFixed(4);
+  store.set(STORE.spend, JSON.stringify(s)); renderSpend();
+}
+const money = (v) => `$${(Math.round(v * 100) / 100).toFixed(2)}`;
+/** "about $X", plus "up to $Y" when automatic retries could add more. */
+const estimate = (one, max = one) => (max > one * 1.01 ? `about ${money(one)}, up to ${money(max)} with retries` : `about ${money(one)}`);
+function renderSpend() {
+  const s = spend(), since = new Date(s.since).toLocaleDateString();
+  const chip = $("#spend-chip");
+  if (chip) { chip.textContent = money(s.total); chip.title = `Spent on fal.ai through this app in this browser since ${since} (an estimate)`; chip.setAttribute("aria-label", `Spent about ${money(s.total)} since ${since}. Open costs`); }
+  if ($("#spend-total")) { $("#spend-total").textContent = money(s.total); $("#spend-since").textContent = since; }
 }
 
 /* Reading images: the same instructions as the app, answered by a vision model through fal.ai. */
@@ -514,6 +584,7 @@ function planFrame(w, h, list) {
 const readDataURL = (blob) => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob); });
 const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error("That image couldn’t be opened.")); i.src = src; });
 const toBlob = (c, type = "image/png", q) => new Promise((res) => c.toBlob(res, type, q));
+const canvasOf = (w, h) => Object.assign(document.createElement("canvas"), { width: w, height: h });
 const OK_TYPES = ["image/jpeg", "image/png", "image/webp"];
 async function readImage(file) {
   if (!OK_TYPES.includes(file.type)) throw new Error("Use a JPG, PNG or WebP image (iPhone HEIC: export as JPG first).");
@@ -867,6 +938,7 @@ const S = {
   pick: null, duration: "5", format: "9:16", motion: "auto", videoType: "lifestyle", cta: { title: "", action: "" }, more3: false,
   reels: [],
   uploading: null,
+  logo: null, compare: false, cmp: 50,
 };
 const heroV = () => S.versions.find((v) => v.id === S.heroId) || null;
 const doneShots = () => S.shots.filter((s) => s.status === "done");
@@ -1049,6 +1121,7 @@ function renderPromptBox() {
     <label class="sr" for="brief">Prompt</label><textarea id="brief" maxlength="600" style="margin-top:12px;min-height:124px" placeholder="e.g. a weekend house on a hill in Rajasthan, late afternoon">${esc(S.brief)}</textarea>
     <button class="linkbtn" style="margin-top:8px;font-size:13.5px" data-act="enhance" ${!S.analysis || S.eStatus === "busy" ? "disabled" : ""}>${e ? "Expand again" : "Expand with AI"}</button>${x}`;
 }
+const renderTry = () => { const p = prices(); return (S.size === "4K" ? p.pro4k : p.pro) + p.vision; };
 function renderGoBox() {
   const blocked = blockedReason();
   const more = S.more1 ? `<div style="margin-top:16px">
@@ -1056,7 +1129,7 @@ function renderGoBox() {
       <p class="lbl" style="margin-top:14px">Openings</p>${chipsHTML("openings", S.openings, [{ v: "keep-blind", l: "Keep faces blind" }, { v: "add", l: "Add openings" }, { v: "follow-reference", l: "Follow the reference", disabled: !S.reference }])}
       <p class="lbl" style="margin-top:14px">Size</p>${chipsHTML("size", S.size, [{ v: "1K", l: "1K" }, { v: "2K", l: "2K" }, { v: "4K", l: "4K" }])}</div>` : "";
   $("#b-go").innerHTML = `<div class="btns" style="margin-top:0"><button class="btn lg" data-act="generate" ${blocked || S.r1.busy ? "disabled" : ""}>${S.r1.busy ? "Working…" : "Generate"}</button><button class="morebtn" data-act="more1" aria-expanded="${S.more1}">${S.more1 ? "Fewer options" : "More options"}</button></div>
-    ${blocked ? `<p class="small" style="margin:10px 0 0">${esc(blocked)}</p>` : ""}${more}`;
+    ${blocked ? `<p class="small" style="margin:10px 0 0">${esc(blocked)}</p>` : ""}<p class="small" style="margin:8px 0 0">Each render: ${estimate(renderTry(), 3 * renderTry())}.</p>${more}`;
 }
 function renderR1R() {
   const h = heroV();
@@ -1065,15 +1138,20 @@ function renderR1R() {
   if (h) {
     const low = !h.check || h.check.score < 85;
     const ov = S.outline ? `<img class="ov" src="${massingEdges(S.massing.img, S.massing.key)}" alt="">` : "";
-    html += `<div class="outwrap" style="margin-top:12px"><div class="outpic" style="aspect-ratio:${h.w} / ${h.h};max-height:620px"><img class="main zoomable" src="${h.url}" alt="Your render" data-act="view-hero">${ov}</div></div>
+    const under = S.compare ? `<img class="under zoomable" src="${S.massing.url}" alt="Your massing" data-act="view-hero">` : "";
+    html += `<div class="outwrap" style="margin-top:12px"><div class="outpic" style="aspect-ratio:${h.w} / ${h.h};max-height:620px;--cmp:${S.cmp}%">${under}<img class="main zoomable${S.compare ? " cmp" : ""}" src="${h.url}" alt="Your render" data-act="view-hero">${ov}${S.compare ? `<div class="cmpline" aria-hidden="true"></div>` : ""}</div></div>
       <div style="padding:14px 18px 18px">
+        ${S.compare ? `<div class="cmprow"><span class="small">Massing</span><input type="range" class="range" id="cmp" min="0" max="100" step="any" value="${S.cmp}" aria-label="Compare: towards Render shows more of the render"><span class="small">Render</span></div>` : ""}
         ${low ? `<div class="banner" role="alert" style="margin-bottom:10px">${ICON.warn}<div>${WARNING}</div></div>` : ""}
         ${low && h.check?.issues?.length ? `<p class="small" style="margin:0 0 10px">${esc(h.check.issues[0])}</p>` : ""}
         <div class="btns" style="margin-top:0">${scoreHTML(h.check, "Outline match")}<span style="flex:1"></span>
+          <button class="btn sm ${S.compare ? "pill" : "sec2"}" data-act="compare" aria-pressed="${S.compare}">Compare</button>
           <button class="btn sm ${S.outline ? "pill" : "sec2"}" data-act="outline" aria-pressed="${S.outline}">Massing outline</button>
           <button class="btn sm sec2" data-act="generate" ${S.r1.busy ? "disabled" : ""}>Try another</button>
+          <button class="btn sm sec2" data-act="reveal">Reveal reel</button>
           <button class="btn sm sec2" data-act="download-output">Download</button></div>
         <div class="btns"><label class="sr" for="change">Ask for a change</label><input type="text" id="change" placeholder="Ask for a change, e.g. more glass at ground floor" maxlength="600" value="${esc(S.changeText)}" style="flex:1;min-width:200px"><button class="btn sm" data-act="change" ${S.r1.busy ? "disabled" : ""}>Apply</button></div>
+        <p class="small" style="margin:8px 0 0">Try another or Apply, each: ${estimate(renderTry(), 3 * renderTry())}. Reveal reel: free, made in your browser.</p>
         ${S.r1.busy ? working(S.r1.stage) : ""}${S.r1.error ? `<p class="err">${esc(S.r1.error)}</p>` : ""}
         ${S.versions.length > 1 ? `<div class="versions" style="margin-top:14px" aria-label="Versions">${S.versions.map((v, i) => `<button type="button" data-act="pick-version" data-id="${v.id}" aria-pressed="${v.id === S.heroId}" title="${esc(v.label || `Version ${S.versions.length - i}`)}"><img src="${v.url}" alt="Version ${S.versions.length - i}"></button>`).join("")}</div>` : ""}
       </div>`;
@@ -1085,6 +1163,14 @@ function renderR1R() {
 
 /* ───────────── Row 2 ───────────── */
 const shotList = () => (S.useSuggested && S.storyboard ? S.storyboard : PRESETS);
+/** [usual, most] for a set of shots: the scene (and its check), then, with people, the measuring, the people pass and its check; up to 3 tries each. */
+function shotsCost(recipes) {
+  const p = prices(), scene = (S.size === "4K" ? p.nb24k : p.nb2) + p.vision, people = (S.size === "4K" ? p.pro4k : p.pro) + p.vision;
+  return recipes.reduce(([one, max], r) => {
+    const ppl = peopleOf(r).length > 0;
+    return [one + scene + (ppl ? p.vision + people : 0), max + 3 * scene + (ppl ? p.vision + 3 * people : 0)];
+  }, [0, 0]);
+}
 /** Step 1 of the lifestyle shots: the owner checks the measured heights against 1.75 m figures and corrects them. */
 function scaleBoxHTML(h) {
   const head = `<h3>Check the human scale</h3><p class="help">The white figure is a 1.75 m adult. Move the slider until they look like a real person standing beside your building, and <span class="only-mouse">drag them</span><span class="only-touch">tap the picture to move them</span> next to a door to compare. Every person, animal and plant in the shots is sized from this.</p>`;
@@ -1114,7 +1200,7 @@ function renderR2() {
       <ul class="shotlist" style="margin-top:10px">${list.map((r, i) => `<li><label><input type="checkbox" data-shot="${i}" ${S.picked.has(i) ? "checked" : ""} ${h ? "" : "disabled"}><span><b>${esc(r.title)}</b><small>${esc(shotSummary(r))}</small></span></label></li>`).join("")}</ul>
       <div class="btns" style="font-size:13.5px"><button class="linkbtn" data-act="suggest" ${!h || S.sStatus === "busy" ? "disabled" : ""}>Suggest shots for this place</button>${swap}</div>${status}
 </div>
-    <div class="go"><button class="btn lg" data-act="create-shots" ${!h || !ok || !chosen.length || busy ? "disabled" : ""}>${busy ? "Creating…" : `Create ${chosen.length} ${chosen.length === 1 ? "shot" : "shots"}`}</button>${h && !ok ? `<p class="small" style="margin:8px 0 0">Set the human scale above first.</p>` : ""}</div></div>`;
+    <div class="go"><button class="btn lg" data-act="create-shots" ${!h || !ok || !chosen.length || busy ? "disabled" : ""}>${busy ? "Creating…" : `Create ${chosen.length} ${chosen.length === 1 ? "shot" : "shots"}`}</button>${h && !ok ? `<p class="small" style="margin:8px 0 0">Set the human scale above first.</p>` : ""}${chosen.length ? `<p class="small" style="margin:8px 0 0">${chosen.length === 1 ? "This shot" : `These ${chosen.length} shots`}: ${estimate(...shotsCost(chosen.map((i) => list[i])))}.</p>` : ""}</div></div>`;
   const ratio = S.massing ? `${S.massing.w} / ${S.massing.h}` : "4 / 3";
   drawScalePreview(h);
   $("#r2r").innerHTML = `<h3 class="outh">Output images</h3><div class="grid3">${S.shots.length ? S.shots.map(shotSlotHTML).join("") : Array.from({ length: 6 }, () => `<div class="slot empty" style="aspect-ratio:${ratio}" data-empty="Your lifestyle shots appear here."></div>`).join("")}</div>`;
@@ -1140,8 +1226,8 @@ function currentPick() {
 }
 function renderR3() {
   const done = doneShots();
-  $("#row3").classList.toggle("dim", !done.length);
-  $("#n-r3").textContent = done.length ? "Short vertical videos for Instagram. Your picture is never cropped." : "Create lifestyle shots above first.";
+  $("#row3").classList.toggle("dim", !done.length && !S.reels.length);
+  $("#n-r3").textContent = done.length ? "Short vertical videos for Instagram. Your picture is never cropped." : S.reels.length ? "Create lifestyle shots above to make more reels." : "Create lifestyle shots above first.";
   const sel = currentPick();
   const busy = S.reels.some((r) => r.status === "rendering");
   const more = S.more3 ? `<p class="lbl" style="margin-top:16px">Format</p>${chipsHTML("format", S.format, [{ v: "9:16", l: "9:16" }, { v: "1:1", l: "1:1" }, { v: "16:9", l: "16:9" }])}
@@ -1155,19 +1241,27 @@ function renderR3() {
       <p class="lbl" style="margin-top:16px">Video</p>${chipsHTML("videoType", S.videoType, [{ v: "lifestyle", l: "Cinematic lifestyle" }, { v: "cta", l: "Lifestyle + call to action" }])}${ctaFields}
       <p class="lbl" style="margin-top:16px">Length</p>${chipsHTML("duration", S.duration, [{ v: "5", l: "5 s" }, { v: "10", l: "10 s" }])}
       <button class="morebtn" style="margin-top:14px" data-act="more3" aria-expanded="${S.more3}">${S.more3 ? "Fewer options" : "More options"}</button>${more}</div>
-    <div class="go"><button class="btn lg" data-act="create-reels" ${sel.length && !busy ? "" : "disabled"}>${busy ? "Creating…" : `Create ${sel.length} ${sel.length === 1 ? "reel" : "reels"}`}</button><p class="small" style="margin:8px 0 0">Each reel takes a few minutes on fal.ai. You can keep working, but keep this page open and on screen while the reels are finished.</p></div></div>`;
-  $("#r3r").innerHTML = `<h3 class="outh">Video output</h3><div class="grid3">${S.reels.length ? S.reels.map(reelSlotHTML).join("") : Array.from({ length: MAX_REELS }, () => `<div class="slot empty" style="aspect-ratio:9 / 16" data-empty="Your reels appear here."></div>`).join("")}</div>`;
+    <div class="go"><button class="btn lg" data-act="create-reels" ${sel.length && !busy ? "" : "disabled"}>${busy ? "Creating…" : `Create ${sel.length} ${sel.length === 1 ? "reel" : "reels"}`}</button><p class="small" style="margin:8px 0 0">${sel.length ? `${sel.length === 1 ? "This reel" : `These ${sel.length} reels`}: ${estimate(sel.length * (prices().kling * Number(S.duration) + prices().vision))}. ` : ""}Each reel takes a few minutes on fal.ai. You can keep working, but keep this page open and on screen while the reels are finished.</p></div></div>`;
+  const parts = filmParts(), filmBusy = S.reels.some((x) => x.kind === "film" && x.status === "rendering");
+  const made = S.reels.filter((x) => x.kind !== "film" && x.status === "done").length;
+  const secs = Math.round(parts.reduce((n, x) => n + (x.kind === "reveal" ? REVEAL.total : Number(x.duration)), 0) + (S.videoType === "cta" && (S.cta.title || S.cta.action) ? CTA_HOLD : 0));
+  const bar = made >= 2 ? `<div class="filmbar"><button class="btn sm" data-act="make-film" ${parts.length >= 2 && !filmBusy ? "" : "disabled"}>Join ${parts.length} into one film</button><span class="small">${parts.length >= 2 ? `About ${secs} s in ${S.format}. Free: made in your browser.` : "Tick at least two videos for the film."}</span></div>` : "";
+  $("#r3r").innerHTML = `<h3 class="outh">Video output</h3>${bar}<div class="grid3">${S.reels.length ? S.reels.map(reelSlotHTML).join("") : Array.from({ length: MAX_REELS }, () => `<div class="slot empty" style="aspect-ratio:9 / 16" data-empty="Your reels appear here."></div>`).join("")}</div>`;
 }
 function reelSlotHTML(r) {
-  const shot = S.shots.find((s) => s.id === r.shotId);
-  const still = shot?.pic?.url || "";
+  const hero = r.kind ? S.versions.find((v) => v.id === r.heroId) : null;
+  const shot = r.kind ? null : S.shots.find((s) => s.id === r.shotId);
+  const still = hero?.url || shot?.pic?.url || "";
+  const title = r.kind === "reveal" ? "Massing → render" : r.kind === "film" ? `Film, ${r.parts.length} videos` : shot?.recipe.title || "Reel";
   const body = r.status === "done"
     ? `<video class="fg" src="${r.src}" controls playsinline loop muted></video>`
     : `<img class="fg kb" src="${still}" alt="">${r.status === "rendering" ? `<div class="over" style="background:rgba(0,0,0,.35)"><span class="score">${esc(r.stage || "Making the clip…")}</span></div>` : ""}`;
+  const canJoin = r.status === "done" && r.kind !== "film" && (r.kind === "reveal" || r.clip);
   return `<div class="slot"><div class="reelframe" style="aspect-ratio:${ASPECT[r.format]}"><img class="bg" src="${still}" alt="">${body}</div>
-    <div class="cap"><span>${esc(shot?.recipe.title || "Reel")}, ${r.duration} s</span>
-      ${r.status === "done" ? `<button class="icon" data-act="download-reel" data-id="${r.id}" aria-label="Download reel">${ICON.dl}</button>` : ""}
-      ${r.status === "done" || r.status === "error" ? `<button class="icon" data-act="redo-reel" data-id="${r.id}" aria-label="Make this reel again">${ICON.redo}</button>` : ""}</div>
+    <div class="cap"><span>${esc(title)}, ${Math.round(Number(r.duration))} s</span>
+      ${r.status === "done" ? `<button class="icon" data-act="download-reel" data-id="${r.id}" aria-label="Download ${esc(title)}">${ICON.dl}</button>` : ""}
+      ${r.status === "done" || r.status === "error" ? `<button class="icon" data-act="redo-reel" data-id="${r.id}" aria-label="Make ${esc(title)} again">${ICON.redo}</button>` : ""}</div>
+    ${canJoin ? `<label class="infilm"><input type="checkbox" data-film="${r.id}" ${r.inFilm !== false ? "checked" : ""}> In the film</label>` : ""}
     ${r.status === "error" ? `<p class="err" style="padding:0 10px 10px;margin:0;font-size:13px">${esc(r.error)}</p>` : ""}
     ${r.status === "done" && r.note ? `<p class="small" style="padding:0 10px;margin:0">${esc(r.note)}</p>` : ""}
     ${r.prompt ? `<details class="brief"><summary>Video brief</summary><p>${esc(r.prompt)}</p></details>` : ""}</div>`;
@@ -1225,55 +1319,165 @@ function drawCta(ctx, W, H, box, cta, t, total) {
   }
   ctx.restore();
 }
-/** Put Kling's clip, unscaled in shape and never cropped, into the reel format over a blur of itself; add the call to action if asked. */
-async function composeReel(clip, { format, region, cta }) {
+/** The studio logo in its corner, at most 22% of the short side wide. */
+function drawLogo(ctx, W, H, logo) {
+  if (!logo?.img) return;
+  const sh = Math.min(W, H), iw = logo.img.naturalWidth, ih = logo.img.naturalHeight;
+  const k = Math.min((sh * 0.22) / iw, (sh * 0.1) / ih), w = iw * k, h = ih * k, m = sh * 0.045;
+  const x = logo.pos.endsWith("left") ? m : W - m - w, y = logo.pos.startsWith("bottom") ? H - m - h : m;
+  ctx.save(); ctx.shadowColor = "rgba(0,0,0,.3)"; ctx.shadowBlur = sh * 0.012; ctx.drawImage(logo.img, x, y, w, h); ctx.restore();
+}
+const fitBox = (w, h, W, H) => { const k = Math.min(W / w, H / h), bw = Math.round(w * k), bh = Math.round(h * k); return { x: Math.round((W - bw) / 2), y: Math.round((H - bh) / 2), w: bw, h: bh }; };
+/** A clip or picture in its box, unscaled in shape and never cropped, over a blur of itself. */
+function drawFitted(ctx, src, rect, box, W, H) {
+  drawBlurred(ctx, src, rect.x, rect.y, rect.w, rect.h, W, H, Math.round(30 * W / 1080), 0.22);
+  ctx.drawImage(src, rect.x, rect.y, rect.w, rect.h, box.x, box.y, box.w, box.h);
+}
+async function loadClip(blob) {
+  const url = URL.createObjectURL(blob);
+  const v = Object.assign(document.createElement("video"), { muted: true, playsInline: true, preload: "auto", src: url });
+  try { await new Promise((res, rej) => { v.onloadeddata = res; v.onerror = () => rej(new Error("a clip couldn’t be read.")); }); }
+  catch (e) { URL.revokeObjectURL(url); throw e; }
+  v.release = () => { v.removeAttribute("src"); v.load(); URL.revokeObjectURL(url); };
+  return v;
+}
+const clipRect = (v, region) => (region ? { x: region.x * v.videoWidth, y: region.y * v.videoHeight, w: region.w * v.videoWidth, h: region.h * v.videoHeight } : { x: 0, y: 0, w: v.videoWidth, h: v.videoHeight });
+/** Record a canvas. Phones stop drawing in the background, so the recording (and any clip playing) pauses there and carries on when the app is back. */
+function startRecording(c) {
   const type = recorderType();
   if (!type) throw new Error("this browser can’t record video (use Chrome, Edge or Safari).");
+  const rec = new MediaRecorder(c.captureStream(30), { mimeType: type, videoBitsPerSecond: 10_000_000 });
+  const chunks = []; rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  const stopped = new Promise((res) => { rec.onstop = res; });
+  const r = { away: 0, since: null, media: null };
+  const onAway = () => {
+    if (document.hidden && r.since == null) { r.since = performance.now(); r.media?.pause(); if (rec.state === "recording") rec.pause(); }
+    else if (!document.hidden && r.since != null) { r.away += performance.now() - r.since; r.since = null; if (rec.state === "paused") rec.resume(); if (r.media && !r.media.ended) r.media.play().catch(() => {}); }
+  };
+  document.addEventListener("visibilitychange", onAway);
+  rec.start(500);
+  /** Foreground seconds since a mark: time spent in the background does not count. */
+  r.mark = () => ({ t0: performance.now(), a0: r.away });
+  r.elapsed = (m) => (performance.now() - m.t0 - (r.away - m.a0) - (r.since != null ? performance.now() - r.since : 0)) / 1000;
+  r.finish = async () => { document.removeEventListener("visibilitychange", onAway); if (rec.state !== "inactive") rec.stop(); await stopped; return new Blob(chunks, { type: type.split(";")[0] }); };
+  r.abort = () => { document.removeEventListener("visibilitychange", onAway); if (rec.state !== "inactive") rec.stop(); };
+  return r;
+}
+/** Draw for `seconds` of foreground time; draw(t) gets the time into the stretch. */
+function runFor(r, seconds, draw) {
+  const m = r.mark();
+  return new Promise((res) => { const tick = () => { const t = Math.min(seconds, r.elapsed(m)); draw(t); if (t >= seconds) res(); else requestAnimationFrame(tick); }; tick(); });
+}
+/** Play a clip through once, drawing each frame; draw(t) gets the clip's own time. */
+async function runClip(r, v, draw) {
+  r.media = v; v.currentTime = 0;
+  await v.play();
+  await new Promise((res) => { v.onended = res; const tick = () => { if (v.ended) return; draw(v.currentTime); requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
+  r.media = null;
+}
+const fontsFor = (cta) => Promise.all([document.fonts?.load?.("600 30px Inter"), cta ? document.fonts?.load?.("600 64px Inter") : null]).catch(() => {});
+/** Kling's clip in the reel format over a blur of itself, never cropped; the call to action and logo if asked. */
+async function composeReel(clip, { format, region, cta, logo }) {
   const [W, H] = REEL_SIZE[format];
-  const url = URL.createObjectURL(clip);
-  const v = Object.assign(document.createElement("video"), { muted: true, playsInline: true, preload: "auto", src: url });
-  let onAway = null;
+  const v = await loadClip(clip);
+  let r = null;
   try {
-    await new Promise((res, rej) => { v.onloadeddata = res; v.onerror = () => rej(new Error("the clip couldn’t be read.")); });
-    if (cta) await document.fonts?.load?.("600 64px Inter").catch(() => {});
-    const vw = v.videoWidth, vh = v.videoHeight;
-    const src = region ? { x: region.x * vw, y: region.y * vh, w: region.w * vw, h: region.h * vh } : { x: 0, y: 0, w: vw, h: vh };
-    const k = Math.min(W / src.w, H / src.h);
-    const box = { w: Math.round(src.w * k), h: Math.round(src.h * k) };
-    box.x = Math.round((W - box.w) / 2); box.y = Math.round((H - box.h) / 2);
-    const c = Object.assign(document.createElement("canvas"), { width: W, height: H });
-    const ctx = c.getContext("2d");
+    await fontsFor(cta);
+    const src = clipRect(v, region), box = fitBox(src.w, src.h, W, H);
+    const c = canvasOf(W, H), ctx = c.getContext("2d");
     const total = v.duration + (cta ? CTA_HOLD : 0);
-    const draw = (t) => {
-      drawBlurred(ctx, v, src.x, src.y, src.w, src.h, W, H, Math.round(30 * W / 1080), 0.22);
-      ctx.drawImage(v, src.x, src.y, src.w, src.h, box.x, box.y, box.w, box.h);
-      if (cta) drawCta(ctx, W, H, box, cta, t, total);
+    const draw = (t) => { drawFitted(ctx, v, src, box, W, H); if (cta) drawCta(ctx, W, H, box, cta, t, total); drawLogo(ctx, W, H, logo); };
+    draw(0); r = startRecording(c);
+    await runClip(r, v, draw);
+    if (cta) await runFor(r, CTA_HOLD, (t) => draw(v.duration + t));
+    return await r.finish();
+  } finally { r?.abort(); v.release(); }
+}
+
+/* ───────────── massing → render reveal (in this browser, no AI) ───────────── */
+const REVEAL = { hold: 1.2, wipe: 2.4, total: 5 }; // the massing holds, the wipe uncovers the render, the render holds
+const smooth = (x) => { const c = Math.max(0, Math.min(1, x)); return c * c * (3 - 2 * c); };
+function tag(ctx, text, x, y, align, u, a) {
+  if (a <= 0.01) return;
+  ctx.save(); ctx.globalAlpha = a; ctx.font = `600 ${Math.round(30 * u)}px Inter, system-ui, sans-serif`; ctx.textBaseline = "middle"; ctx.textAlign = "center";
+  const w = ctx.measureText(text).width + 36 * u, h = 52 * u, x0 = align === "right" ? x - w : x;
+  ctx.fillStyle = "rgba(20,19,17,.62)"; pill(ctx, x0, y - h, w, h); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.fillText(text, x0 + w / 2, y - h / 2 + 1); ctx.restore();
+}
+/** A still picture's blurred fill, made once: the reveal's two pictures never change. */
+function blurredFill(img, W, H) {
+  const c = canvasOf(W, H);
+  drawBlurred(c.getContext("2d"), img, 0, 0, img.naturalWidth, img.naturalHeight, W, H, Math.round(30 * W / 1080), 0.22);
+  return c;
+}
+const revealFills = (massing, hero, W, H) => ({ m: blurredFill(massing.img, W, H), h: blurredFill(hero.img, W, H) });
+/** One frame of the reveal at time t: both pictures share the render's box, the render uncovered from the left. */
+function drawReveal(ctx, W, H, massing, hero, box, t, fills) {
+  const p = smooth((t - REVEAL.hold) / REVEAL.wipe), u = Math.min(W, H) / 1080;
+  ctx.drawImage(fills.m, 0, 0);
+  if (p > 0) { ctx.save(); ctx.globalAlpha = p; ctx.drawImage(fills.h, 0, 0); ctx.restore(); }
+  ctx.drawImage(massing.img, box.x, box.y, box.w, box.h);
+  if (p > 0) {
+    const cut = box.x + box.w * p;
+    ctx.save(); ctx.beginPath(); ctx.rect(box.x, box.y, cut - box.x, box.h); ctx.clip(); ctx.drawImage(hero.img, box.x, box.y, box.w, box.h); ctx.restore();
+    if (p < 1) { ctx.save(); ctx.fillStyle = "#fff"; ctx.shadowColor = "rgba(0,0,0,.4)"; ctx.shadowBlur = 14 * u; ctx.fillRect(cut - 2 * u, box.y, 4 * u, box.h); ctx.restore(); }
+  }
+  tag(ctx, "Massing", box.x + box.w - 20 * u, box.y + box.h - 20 * u, "right", u, 1 - smooth((p - 0.55) / 0.3));
+  tag(ctx, "Render", box.x + 20 * u, box.y + box.h - 20 * u, "left", u, smooth((p - 0.15) / 0.3));
+}
+async function composeReveal(massing, hero, { format, cta, logo }) {
+  const [W, H] = REEL_SIZE[format];
+  const c = canvasOf(W, H), ctx = c.getContext("2d");
+  const box = fitBox(hero.w, hero.h, W, H), total = REVEAL.total + (cta ? CTA_HOLD : 0), fills = revealFills(massing, hero, W, H);
+  await fontsFor(cta);
+  const draw = (t) => { drawReveal(ctx, W, H, massing, hero, box, Math.min(t, REVEAL.total), fills); if (cta) drawCta(ctx, W, H, box, cta, t, total); drawLogo(ctx, W, H, logo); };
+  let r = null;
+  try { draw(0); r = startRecording(c); await runFor(r, total, draw); return await r.finish(); }
+  finally { r?.abort(); }
+}
+
+/* ───────────── one film from several videos (in this browser, no AI) ───────────── */
+const DIP = 0.25; // seconds of dip to dark either side of a cut
+/** The reveal and the reels, one after another in the film's format, each from its source so the headline, call to action and logo come once. */
+async function composeFilm(parts, { format, cta, logo }) {
+  const [W, H] = REEL_SIZE[format];
+  const c = canvasOf(W, H), ctx = c.getContext("2d");
+  const clips = [];
+  let r = null;
+  try {
+    await fontsFor(cta);
+    const segs = [];
+    for (const part of parts) { // every clip is loaded first, so the film never waits between them
+      if (part.kind === "reveal") {
+        const hero = S.versions.find((x) => x.id === part.heroId);
+        segs.push({ kind: "reveal", hero, box: fitBox(hero.w, hero.h, W, H), dur: REVEAL.total, fills: revealFills(S.massing, hero, W, H) });
+      } else {
+        const v = await loadClip(part.clip); clips.push(v);
+        const src = clipRect(v, part.region);
+        segs.push({ kind: "clip", v, src, box: fitBox(src.w, src.h, W, H), dur: v.duration });
+      }
+    }
+    const total = segs.reduce((n, x) => n + x.dur, 0) + (cta ? CTA_HOLD : 0);
+    let base = 0;
+    const frame = (i, t, filmT) => {
+      const seg = segs[i];
+      if (seg.kind === "reveal") drawReveal(ctx, W, H, S.massing, seg.hero, seg.box, t, seg.fills);
+      else drawFitted(ctx, seg.v, seg.src, seg.box, W, H);
+      const dip = Math.max(i > 0 ? 1 - t / DIP : 0, i < segs.length - 1 ? 1 - (seg.dur - t) / DIP : 0);
+      if (dip > 0) { ctx.fillStyle = `rgba(0,0,0,${Math.min(1, dip)})`; ctx.fillRect(0, 0, W, H); }
+      if (cta) drawCta(ctx, W, H, seg.box, cta, filmT, total);
+      drawLogo(ctx, W, H, logo);
     };
-    const rec = new MediaRecorder(c.captureStream(30), { mimeType: type, videoBitsPerSecond: 10_000_000 });
-    const chunks = []; rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
-    const stopped = new Promise((res) => { rec.onstop = res; });
-    // Phones stop drawing in the background: pause the clip and the recording there, carry on when the app is back.
-    let away = 0, awaySince = null;
-    onAway = () => {
-      if (document.hidden && awaySince == null) { awaySince = performance.now(); v.pause(); if (rec.state === "recording") rec.pause(); }
-      else if (!document.hidden && awaySince != null) { away += performance.now() - awaySince; awaySince = null; if (rec.state === "paused") rec.resume(); if (!v.ended) v.play().catch(() => {}); }
-    };
-    document.addEventListener("visibilitychange", onAway);
-    draw(0); rec.start(500);
-    await v.play();
-    await new Promise((res) => {
-      v.onended = res;
-      const tick = () => { if (v.ended) return; draw(v.currentTime); requestAnimationFrame(tick); };
-      requestAnimationFrame(tick);
-    });
-    const t0 = performance.now(), away0 = away;
-    await new Promise((res) => {
-      const tick = () => { const t = Math.min(total, v.duration + (performance.now() - t0 - (away - away0)) / 1000); draw(t); if (t >= total) res(); else requestAnimationFrame(tick); };
-      tick();
-    });
-    rec.stop(); await stopped;
-    return new Blob(chunks, { type: type.split(";")[0] });
-  } finally { if (onAway) document.removeEventListener("visibilitychange", onAway); v.removeAttribute("src"); v.load(); URL.revokeObjectURL(url); }
+    frame(0, 0, 0); r = startRecording(c);
+    for (let i = 0; i < segs.length; i++) {
+      if (segs[i].kind === "clip") await runClip(r, segs[i].v, (t) => frame(i, t, base + t));
+      else await runFor(r, segs[i].dur, (t) => frame(i, t, base + t));
+      base += segs[i].dur;
+    }
+    const last = segs.length - 1;
+    if (cta) await runFor(r, CTA_HOLD, (t) => frame(last, segs[last].dur, base + t));
+    return await r.finish();
+  } finally { r?.abort(); clips.forEach((v) => v.release()); }
 }
 
 /* ───────────── actions (all real, on fal.ai) ───────────── */
@@ -1424,12 +1628,12 @@ async function makeReel(r) {
     let clip = null;
     try { clip = await (await fetch(url)).blob(); } catch {}
     const cta = r.type === "cta" && (r.cta.title || r.cta.action) ? r.cta : null;
-    const ready = !plan.region && ratioDiff(shot.pic.w / shot.pic.h, parseRatio(r.format)) <= TOL && !cta;
-    r.blob = clip;
+    const ready = !plan.region && ratioDiff(shot.pic.w / shot.pic.h, parseRatio(r.format)) <= TOL && !cta && !S.logo;
+    r.blob = clip; r.clip = clip; r.region = plan.region;
     if (!clip) r.note = "Kling’s clip couldn’t be downloaded for finishing, so it is shown as it came.";
     else if (!ready) {
       r.stage = "Finishing the reel (keep this tab open)…"; renderR3();
-      try { r.blob = await limit("compose", 1, () => composeReel(clip, { format: r.format, region: plan.region, cta })); }
+      try { r.blob = await limit("compose", 1, () => composeReel(clip, { format: r.format, region: plan.region, cta, logo: S.logo })); }
       catch (e) { r.note = `Shown as Kling made it: ${e.message}`; }
     }
     r.src = r.blob ? URL.createObjectURL(r.blob) : url;
@@ -1437,6 +1641,30 @@ async function makeReel(r) {
   } catch (e) { r.status = "error"; r.error = e.message; }
   renderR3();
 }
+const ctaOf = (r) => (r.type === "cta" && (r.cta.title || r.cta.action) ? r.cta : null);
+async function makeReveal(r) {
+  const hero = S.versions.find((v) => v.id === r.heroId);
+  if (!hero || !S.massing) return;
+  r.status = "rendering"; r.error = ""; r.stage = "Waiting to be made…"; renderR3();
+  try {
+    r.blob = await limit("compose", 1, () => { r.stage = "Making the reveal (keep this page open)…"; renderR3(); return composeReveal(S.massing, hero, { format: r.format, cta: ctaOf(r), logo: S.logo }); });
+    r.src = URL.createObjectURL(r.blob); r.status = "done";
+  } catch (e) { r.status = "error"; r.error = e.message; }
+  renderR3();
+}
+async function makeFilm(f) {
+  const parts = f.parts.map((id) => S.reels.find((x) => x.id === id)).filter((x) => x && (x.kind === "reveal" || x.clip));
+  if (parts.length < 2) { f.status = "error"; f.error = "Two or more finished videos are needed for a film."; renderR3(); return; }
+  f.status = "rendering"; f.error = ""; f.stage = "Waiting to be made…"; renderR3();
+  try {
+    f.blob = await limit("compose", 1, () => { f.stage = `Joining ${parts.length} videos (keep this page open)…`; renderR3(); return composeFilm(parts, { format: f.format, cta: ctaOf(f), logo: S.logo }); });
+    f.src = URL.createObjectURL(f.blob); f.status = "done";
+  } catch (e) { f.status = "error"; f.error = e.message; }
+  renderR3();
+}
+/** The videos a film is made of: the reveal first, then the reels in the order they were made. */
+const filmParts = () => S.reels.filter((x) => x.status === "done" && x.inFilm !== false && (x.kind === "reveal" || (!x.kind && x.clip)))
+  .sort((a, b) => (a.kind === "reveal" ? 0 : 1) - (b.kind === "reveal" ? 0 : 1) || a.created - b.created);
 
 /* ───────────── files ───────────── */
 async function handleFile(kind, file) {
@@ -1460,6 +1688,7 @@ function openSettings() {
   $("#falkey").value = ""; $("#falkey").placeholder = falKey() ? `Saved (…${falKey().slice(-4)}). Paste a new key to replace it.` : "Paste your key";
   $("#vmodel").value = visionModel();
   $("#key-err").hidden = true; $("#key-ok").hidden = true; $("#remove-key").hidden = !falKey();
+  renderPrices(); renderSpend(); renderLogoBox();
   if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "");
 }
 function renderKeyState() {
@@ -1469,6 +1698,46 @@ function renderKeyState() {
   chip.classList.toggle("no", !has);
   $("#keybanner").hidden = has;
 }
+function renderPrices() {
+  const p = prices();
+  $("#prices").innerHTML = Object.keys(PRICE_DEFAULTS).map((k) => `<label><span>${PRICE_LABELS[k]}</span><input type="text" inputmode="decimal" id="pr-${k}" value="${p[k]}" aria-label="${PRICE_LABELS[k]}, in US dollars"></label>`).join("");
+}
+function renderLogoBox() {
+  const L = S.logo, pos = L?.pos || "top-right";
+  const corner = (v, l) => `<button type="button" class="chip sm" role="radio" aria-checked="${pos === v}" data-act="logo-pos" data-value="${v}">${l}</button>`;
+  $("#logo-box").innerHTML = `<div class="logorow">${L ? `<img class="logoimg" src="${L.url}" alt="Your logo">` : `<span class="small">No logo yet.</span>`}
+      <button class="btn sm sec2" type="button" data-act="logo-pick">${L ? "Replace" : "Choose a logo"}</button>${L ? `<button class="linkbtn" type="button" data-act="logo-remove" style="font-size:14px">Remove</button>` : ""}</div>
+    <input type="file" id="logo-file" class="sr" accept="image/png,image/jpeg,image/webp" tabindex="-1" aria-label="Choose a logo">
+    ${L ? `<p class="lbl" style="margin-top:12px">Corner</p><div class="chips" role="radiogroup" aria-label="Logo corner">${corner("top-left", "Top left")}${corner("top-right", "Top right")}${corner("bottom-left", "Bottom left")}${corner("bottom-right", "Bottom right")}</div>` : ""}`;
+}
+async function loadLogo() {
+  const url = store.get(STORE.logo);
+  try { S.logo = url ? { url, img: await loadImg(url), pos: store.get(STORE.logoPos) || "top-right" } : null; } catch { S.logo = null; }
+}
+/** Keep the logo small (800 px at most) so it fits in the browser's storage. */
+async function setLogo(file) {
+  if (!OK_TYPES.includes(file.type)) { toast("Use a PNG, JPG or WebP logo."); return; }
+  try {
+    const img = await loadImg(await readDataURL(file));
+    const k = Math.min(1, 800 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = canvasOf(Math.max(1, Math.round(img.naturalWidth * k)), Math.max(1, Math.round(img.naturalHeight * k)));
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    const url = c.toDataURL("image/png");
+    store.set(STORE.logo, url);
+    if (store.get(STORE.logo) !== url) { toast("That logo is too large to keep in this browser. Try a smaller file."); return; }
+    S.logo = { url, img: await loadImg(url), pos: S.logo?.pos || store.get(STORE.logoPos) || "top-right" };
+    renderLogoBox(); toast("Logo saved in this browser.");
+  } catch { toast("That logo couldn’t be opened."); }
+}
+$("#spend-reset").addEventListener("click", () => { store.set(STORE.spend, JSON.stringify({ total: 0, since: new Date().toISOString() })); renderSpend(); toast("Total reset to zero."); });
+$("#prices").addEventListener("change", (e) => {
+  const k = e.target.id?.replace("pr-", ""); if (!(k in PRICE_DEFAULTS)) return;
+  const v = parseFloat(String(e.target.value).replace(",", "."));
+  const p = prices();
+  if (Number.isFinite(v) && v >= 0 && v < 100) { p[k] = v; store.set(STORE.prices, JSON.stringify(p)); renderAll(); toast("Price saved."); }
+  else e.target.value = p[k];
+});
+$("#spend-chip").addEventListener("click", () => { openSettings(); $("#costs").open = true; $("#costs").scrollIntoView({ block: "nearest" }); });
 $("#open-settings").addEventListener("click", openSettings);
 $("#banner-settings").addEventListener("click", openSettings);
 $("#close-settings").addEventListener("click", () => dlg.close());
@@ -1491,18 +1760,51 @@ $("#save-key").addEventListener("click", async () => {
 $("#remove-key").addEventListener("click", () => { store.set(STORE.key, ""); renderKeyState(); renderAll(); dlg.close(); toast("Key removed from this browser."); });
 $("#save-model").addEventListener("click", () => { const m = $("#vmodel").value.trim(); if (!/^[\w.:/-]{3,120}$/.test(m)) { toast("Use a model name like google/gemini-2.5-flash."); return; } store.set(STORE.model, m === DEFAULT_VISION ? "" : m); toast("Saved."); });
 
-/* ───────────── full-screen viewer ───────────── */
+/* ───────────── full-screen viewer, and pictures in post formats (in this browser, no AI) ───────────── */
 const viewer = $("#viewer");
 let viewing = null;
+const POST = { original: 0, "4:5": 4 / 5, "1:1": 1, "9:16": 9 / 16 };
+/** A picture in a post format: never cropped, the space around it filled with a blur of it, the logo in its corner; kept within what phones can draw (16 MP). */
+async function postImage(pic, fmt, logo) {
+  if (fmt === "original" && !logo) return pic.blob;
+  const iw = pic.img.naturalWidth, ih = pic.img.naturalHeight, a = POST[fmt];
+  let W = iw, H = ih;
+  if (a) { if (iw / ih > a) H = Math.round(iw / a); else W = Math.round(ih * a); }
+  const k = Math.min(1, Math.sqrt(16e6 / (W * H)), 4096 / Math.max(W, H));
+  W = Math.round(W * k); H = Math.round(H * k);
+  const c = canvasOf(W, H), ctx = c.getContext("2d"), box = fitBox(iw, ih, W, H);
+  if (box.w < W - 1 || box.h < H - 1) drawBlurred(ctx, pic.img, 0, 0, iw, ih, W, H, Math.round(Math.max(W, H) / 36), 0.18);
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(pic.img, box.x, box.y, box.w, box.h);
+  drawLogo(ctx, W, H, logo);
+  return toBlob(c, fmt === "original" ? "image/png" : "image/jpeg", 0.92);
+}
 function openViewer(pic, title, filename) {
-  viewing = { pic, filename };
-  $("#viewer-img").src = pic.url; $("#viewer-img").alt = title; $("#viewer-title").textContent = title;
+  viewing = { pic, base: filename.replace(/\.\w+$/, ""), fmt: "original", blob: null, url: null };
+  $("#viewer-title").textContent = title; $("#viewer-img").alt = title;
   if (typeof viewer.showModal === "function") viewer.showModal(); else viewer.setAttribute("open", "");
+  setPostFormat("original");
+}
+async function setPostFormat(fmt) {
+  const v = viewing; if (!v) return;
+  v.fmt = fmt; v.blob = null;
+  viewer.querySelectorAll('[data-act="post-fmt"]').forEach((b) => b.setAttribute("aria-checked", String(b.dataset.value === fmt)));
+  $("#viewer-save").disabled = true;
+  $("#viewer-note").textContent = fmt === "original" ? `Your picture as made${S.logo ? ", with your logo" : ""}.` : `${fmt} for posting. Never cropped: the space around your picture is filled with a blur of it${S.logo ? ", and your logo is added" : ""}.`;
+  const blob = await postImage(v.pic, fmt, S.logo);
+  if (viewing !== v || v.fmt !== fmt) return; // another format was chosen meanwhile
+  if (v.url) URL.revokeObjectURL(v.url);
+  v.blob = blob; v.url = blob === v.pic.blob ? null : URL.createObjectURL(blob);
+  $("#viewer-img").src = v.url || v.pic.url;
+  $("#viewer-save").disabled = false;
 }
 $("#viewer-close").addEventListener("click", () => viewer.close());
-$("#viewer-save").addEventListener("click", () => { if (viewing) saveFile(viewing.filename, viewing.pic.blob); });
+$("#viewer-save").addEventListener("click", () => {
+  const v = viewing; if (!v?.blob) return;
+  saveFile(`${v.base}${v.fmt === "original" ? "" : "-" + v.fmt.replace(":", "x")}.${v.blob.type === "image/jpeg" ? "jpg" : "png"}`, v.blob);
+});
 viewer.addEventListener("click", (e) => { if (e.target === viewer) viewer.close(); });
-viewer.addEventListener("close", () => { $("#viewer-img").removeAttribute("src"); viewing = null; });
+viewer.addEventListener("close", () => { $("#viewer-img").removeAttribute("src"); if (viewing?.url) URL.revokeObjectURL(viewing.url); viewing = null; });
 
 /* ───────────── keep the screen on while fal.ai works (phones would sleep and pause the page) ───────────── */
 let wake = null, wakeAsk = false;
@@ -1539,6 +1841,11 @@ document.addEventListener("click", async (e) => {
     case "generate": renderOutput("new"); break;
     case "change": S.changeText = $("#change")?.value || ""; renderOutput("change"); break;
     case "outline": S.outline = !S.outline; renderR1R(); break;
+    case "compare": S.compare = !S.compare; renderR1R(); break;
+    case "post-fmt": setPostFormat(b.dataset.value); break;
+    case "logo-pick": $("#logo-file")?.click(); break;
+    case "logo-remove": store.set(STORE.logo, ""); S.logo = null; renderLogoBox(); toast("Logo removed."); break;
+    case "logo-pos": if (S.logo) { S.logo.pos = b.dataset.value; store.set(STORE.logoPos, S.logo.pos); renderLogoBox(); } break;
     case "download-output": { const h = heroV(); if (h) saveFile("render.png", h.blob); break; }
     case "pick-version": S.heroId = id; renderAll(); break;
     case "suggest": suggestShots(); break;
@@ -1573,14 +1880,29 @@ document.addEventListener("click", async (e) => {
       renderR3(); break;
     }
     case "create-reels": {
-      const fresh = currentPick().map((shotId) => ({ id: uid(), shotId, format: S.format, duration: S.duration, motion: S.motion, type: S.videoType, cta: { title: S.cta.title.trim(), action: S.cta.action.trim() }, status: "rendering", stage: "", prompt: "", note: "", src: "", blob: null, error: "" }));
+      const fresh = currentPick().map((shotId) => ({ id: uid(), created: Date.now(), shotId, format: S.format, duration: S.duration, motion: S.motion, type: S.videoType, cta: { title: S.cta.title.trim(), action: S.cta.action.trim() }, status: "rendering", stage: "", prompt: "", note: "", src: "", blob: null, error: "" }));
       S.reels = [...fresh, ...S.reels.filter((r) => r.status === "done")];
       renderR3();
       fresh.forEach(makeReel);
       break;
     }
-    case "redo-reel": { const r = S.reels.find((x) => x.id === id); if (r) makeReel(r); break; }
-    case "download-reel": { const r = S.reels.find((x) => x.id === id); if (r?.blob) saveFile(`reel-${r.format.replace(":", "x")}.${r.blob.type.includes("webm") ? "webm" : "mp4"}`, r.blob); else if (r?.src) window.open(r.src, "_blank", "noopener"); break; }
+    case "redo-reel": { const r = S.reels.find((x) => x.id === id); if (r) (r.kind === "reveal" ? makeReveal : r.kind === "film" ? makeFilm : makeReel)(r); break; }
+    case "reveal": {
+      const h = heroV(); if (!h) break;
+      const r = { id: uid(), created: Date.now(), kind: "reveal", heroId: h.id, format: S.format, duration: REVEAL.total, type: S.videoType, cta: { title: S.cta.title.trim(), action: S.cta.action.trim() }, status: "rendering", stage: "", src: "", blob: null, error: "" };
+      S.reels = [r, ...S.reels]; renderR3(); makeReveal(r);
+      toast("Making the massing → render reveal. It appears under Reels.");
+      break;
+    }
+    case "make-film": {
+      const parts = filmParts(); if (parts.length < 2) break;
+      const cta = { title: S.cta.title.trim(), action: S.cta.action.trim() };
+      const f = { id: uid(), created: Date.now(), kind: "film", parts: parts.map((x) => x.id), heroId: S.heroId, format: S.format, type: S.videoType, cta,
+        duration: parts.reduce((n, x) => n + (x.kind === "reveal" ? REVEAL.total : Number(x.duration)), 0) + (S.videoType === "cta" && (cta.title || cta.action) ? CTA_HOLD : 0), status: "rendering", stage: "", src: "", blob: null, error: "" };
+      S.reels = [f, ...S.reels]; renderR3(); makeFilm(f);
+      break;
+    }
+    case "download-reel": { const r = S.reels.find((x) => x.id === id); if (r?.blob) saveFile(`${r.kind === "reveal" ? "massing-reveal" : r.kind === "film" ? "film" : "reel"}-${r.format.replace(":", "x")}.${r.blob.type.includes("webm") ? "webm" : "mp4"}`, r.blob); else if (r?.src) window.open(r.src, "_blank", "noopener"); break; }
   }
 });
 document.addEventListener("keydown", (e) => {
@@ -1618,13 +1940,16 @@ document.addEventListener("input", (e) => {
   if (t.id === "brief") { S.brief = t.value; clearTimeout(briefTimer); briefTimer = setTimeout(renderGoBox, 300); }
   else if (t.id === "change") S.changeText = t.value;
   else if (t.id === "sc-person") { const h = heroV(); if (h?.fig) { h.fig.size = Math.min(Number(t.value), h.fig.y - 0.01); drawScalePreview(h); } }
+  else if (t.id === "cmp") { S.cmp = Number(t.value); $("#r1r .outpic")?.style.setProperty("--cmp", `${S.cmp}%`); }
   else if (t.id === "cta-title") S.cta.title = t.value;
   else if (t.id === "cta-action") S.cta.action = t.value;
 });
 document.addEventListener("change", (e) => {
   const t = e.target;
   if (t.id === "sc-person") { const h = heroV(); if (h) figureMoved(h); }
-  if (t.dataset.file && t.files?.[0]) { handleFile(t.dataset.file, t.files[0]); t.value = ""; }
+  if (t.id === "logo-file" && t.files?.[0]) { setLogo(t.files[0]); t.value = ""; }
+  else if (t.dataset.file && t.files?.[0]) { handleFile(t.dataset.file, t.files[0]); t.value = ""; }
+  else if (t.dataset.film) { const r = S.reels.find((x) => x.id === t.dataset.film); if (r) { r.inFilm = t.checked; renderR3(); } }
   else if (t.dataset.shot !== undefined) { const i = Number(t.dataset.shot); if (t.checked) S.picked.add(i); else S.picked.delete(i); renderR2(); }
 });
 document.addEventListener("dragover", (e) => { const d = e.target.closest?.("[data-drop]"); if (d) { e.preventDefault(); d.classList.add("over"); } });
@@ -1643,6 +1968,8 @@ function keepFocus(fn) {
 }
 function renderAll() { keepFocus(() => { renderR1L(); renderR1R(); renderR2(); renderR3(); }); }
 renderKeyState();
+renderSpend();
+loadLogo();
 renderAll();
 </script>
 </body>
